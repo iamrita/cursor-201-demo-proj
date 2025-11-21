@@ -89,19 +89,33 @@ class TMDBService {
         title: string;
         release_date: string | null;
         poster_path: string | null;
-        media_type: string;
+        media_type?: string;
       }>;
     }>(`/person/${actorId}/movie_credits`);
 
-    // Filter to only movies (not TV shows) and return as Movie[]
-    return response.cast
-      .filter(item => item.media_type === 'movie' && item.title)
+    console.log(`[TMDB] Filmography response for actor ${actorId}: ${response.cast.length} items`);
+    if (response.cast.length > 0) {
+      console.log(`[TMDB] First item sample:`, JSON.stringify(response.cast[0], null, 2));
+    }
+
+    // The /movie_credits endpoint should only return movies, but filter just in case
+    // If media_type is not present, assume it's a movie (since we're using movie_credits endpoint)
+    const movies = response.cast
+      .filter(item => {
+        // If media_type exists, it must be 'movie', otherwise assume it's a movie
+        const isMovie = !item.media_type || item.media_type === 'movie';
+        const hasTitle = !!item.title;
+        return isMovie && hasTitle;
+      })
       .map(item => ({
         id: item.id,
         title: item.title,
         release_date: item.release_date || undefined,
         poster_path: item.poster_path || undefined,
       }));
+
+    console.log(`[TMDB] Filtered to ${movies.length} movies`);
+    return movies;
   }
 
   async getMovieCast(movieId: number): Promise<CastMember[]> {

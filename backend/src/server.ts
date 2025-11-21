@@ -1,5 +1,6 @@
-// Load environment variables FIRST using require (executes before imports)
-require('dotenv').config();
+// Load environment variables FIRST (must be before other imports)
+import dotenv from 'dotenv';
+dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
