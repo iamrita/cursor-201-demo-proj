@@ -1,0 +1,143 @@
+import axios from 'axios';
+import { Actor, Movie, CastMember } from '../types';
+
+const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+
+class TMDBService {
+  private apiKey: string;
+  private cache: Map<string, any>;
+
+  constructor() {
+    this.apiKey = process.env.TMDB_API_KEY || '';
+    if (!this.apiKey) {
+      throw new Error('TMDB_API_KEY environment variable is required');
+    }
+    this.cache = new Map();
+  }
+
+  private async request<T>(endpoint: string, params: Record<string, any> = {}): Promise<T> {
+    const cacheKey = `${endpoint}?${JSON.stringify(params)}`;
+    
+    // Check cache first
+    if (this.cache.has(cacheKey)) {
+      return this.cache.get(cacheKey);
+    }
+
+    try {
+      const response = await axios.get<T>(`${TMDB_BASE_URL}${endpoint}`, {
+        params: {
+          api_key: this.apiKey,
+          ...params,
+        },
+      });
+
+      // Cache the response
+      this.cache.set(cacheKey, response.data);
+      
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 429) {
+        // Rate limited - wait a bit and retry
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return this.request<T>(endpoint, params);
+      }
+      throw error;
+    }
+  }
+
+  async searchActors(query: string): Promise<Actor[]> {
+    const response = await this.request<{
+      results: Array<{
+        id: number;
+        name: string;
+        profile_path: string | null;
+        known_for: Array<{
+          title?: string;
+          name?: string;
+          media_type: string;
+        }>;
+      }>;
+    }>('/search/person', { query });
+
+    return response.results.map(actor => ({
+      id: actor.id,
+      name: actor.name,
+      profile_path: actor.profile_path || undefined,
+      known_for: actor.known_for,
+    }));
+  }
+
+  async getActorDetails(actorId: number): Promise<Actor> {
+    const actor = await this.request<{
+      id: number;
+      name: string;
+      profile_path: string | null;
+    }>(`/person/${actorId}`);
+
+    return {
+      id: actor.id,
+      name: actor.name,
+      profile_path: actor.profile_path || undefined,
+    };
+  }
+
+  async getActorFilmography(actorId: number): Promise<Movie[]> {
+    const response = await this.request<{
+      cast: Array<{
+        id: number;
+        title: string;
+        release_date: string | null;
+        poster_path: string | null;
+        media_type: string;
+      }>;
+    }>(`/person/${actorId}/movie_credits`);
+
+    // Filter to only movies (not TV shows) and return as Movie[]
+    return response.cast
+      .filter(item => item.media_type === 'movie' && item.title)
+      .map(item => ({
+        id: item.id,
+        title: item.title,
+        release_date: item.release_date || undefined,
+        poster_path: item.poster_path || undefined,
+      }));
+  }
+
+  async getMovieCast(movieId: number): Promise<CastMember[]> {
+    const response = await this.request<{
+      cast: Array<{
+        id: number;
+        name: string;
+        character: string | null;
+        order: number;
+      }>;
+    }>(`/movie/${movieId}/credits`);
+
+    return response.cast.map(member => ({
+      id: member.id,
+      name: member.name,
+      character: member.character || undefined,
+      order: member.order,
+    }));
+  }
+
+  async getMovieDetails(movieId: number): Promise<Movie> {
+    const movie = await this.request<{
+      id: number;
+      title: string;
+      release_date: string | null;
+      poster_path: string | null;
+    }>(`/movie/${movieId}`);
+
+    return {
+      id: movie.id,
+      title: movie.title,
+      release_date: movie.release_date || undefined,
+      poster_path: movie.poster_path || undefined,
+    };
+  }
+}
+
+export default new TMDBService();
+

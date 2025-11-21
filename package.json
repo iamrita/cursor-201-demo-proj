@@ -1,0 +1,15 @@
+{
+  "name": "six-degrees-tmdb",
+  "version": "1.0.0",
+  "description": "Six Degrees of Kevin Bacon using TMDB API",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
+
