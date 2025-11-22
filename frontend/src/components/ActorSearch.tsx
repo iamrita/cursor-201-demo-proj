@@ -126,27 +126,8 @@ export default function ActorSearch({
                 onClick={() => handleSelect(actor)}
                 className="w-full px-4 py-3 text-left hover:bg-gray-100 transition-colors border-b border-gray-100 last:border-b-0"
               >
-                <div className="flex items-center gap-3">
-                  {actor.profile_path && (
-                    <img
-                      src={`https://image.tmdb.org/t/p/w45${actor.profile_path}`}
-                      alt={actor.name}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900 truncate">
-                      {actor.name}
-                    </div>
-                    {actor.known_for && actor.known_for.length > 0 && (
-                      <div className="text-sm text-gray-500 truncate">
-                        {actor.known_for
-                          .slice(0, 2)
-                          .map((item) => item.title || item.name)
-                          .join(', ')}
-                      </div>
-                    )}
-                  </div>
+                <div className="font-medium text-gray-900 truncate">
+                  {actor.name}
                 </div>
               </button>
             ))}

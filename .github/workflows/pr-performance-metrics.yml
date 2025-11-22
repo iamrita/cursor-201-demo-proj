@@ -1,0 +1,116 @@
+name: PR Performance Metrics
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - main
+
+jobs:
+  performance-metrics:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install root dependencies
+        run: npm install
+      
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm install
+      
+      - name: Install script dependencies
+        working-directory: ./scripts
+        run: npm install
+      
+      - name: Create .env file
+        working-directory: ./backend
+        run: |
+          echo "TMDB_API_KEY=${{ secrets.TMDB_API_KEY }}" > .env
+          echo "PORT=3001" >> .env
+      
+      - name: Build backend
+        working-directory: ./backend
+        run: npm run build
+      
+      - name: Start backend server
+        working-directory: ./backend
+        run: |
+          npm start &
+          sleep 10
+          # Wait for server to be ready
+          for i in {1..30}; do
+            if curl -s http://localhost:3001/api/search?q=test > /dev/null; then
+              echo "Backend is ready!"
+              break
+            fi
+            echo "Waiting for backend to start... ($i/30)"
+            sleep 2
+          done
+      
+      - name: Run performance benchmarks
+        id: benchmarks
+        working-directory: ./scripts
+        run: |
+          npx ts-node pr-performance-metrics.ts || true
+          if [ -f ../performance-metrics.md ]; then
+            echo "METRICS_FILE=performance-metrics.md" >> $GITHUB_ENV
+          fi
+      
+      - name: Post metrics to PR
+        if: env.METRICS_FILE != ''
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const metrics = fs.readFileSync('performance-metrics.md', 'utf8');
+            
+            // Check if we've already posted a comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Performance Metrics - Actor Pathfinder')
+            );
+            
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: metrics
+              });
+              console.log('Updated existing performance metrics comment');
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: metrics
+              });
+              console.log('Posted new performance metrics comment');
+            }
+      
+      - name: Upload metrics artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-metrics
+          path: performance-metrics.md
+          retention-days: 30
+
