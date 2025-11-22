@@ -2,28 +2,18 @@ import axios from 'axios';
 import { Actor, Movie, CastMember } from '../types';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
-const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
 class TMDBService {
   private apiKey: string;
-  private cache: Map<string, any>;
 
   constructor() {
     this.apiKey = process.env.TMDB_API_KEY || '';
     if (!this.apiKey) {
       throw new Error('TMDB_API_KEY environment variable is required');
     }
-    this.cache = new Map();
   }
 
   private async request<T>(endpoint: string, params: Record<string, any> = {}): Promise<T> {
-    const cacheKey = `${endpoint}?${JSON.stringify(params)}`;
-    
-    // Check cache first
-    if (this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey);
-    }
-
     try {
       const response = await axios.get<T>(`${TMDB_BASE_URL}${endpoint}`, {
         params: {
@@ -31,9 +21,6 @@ class TMDBService {
           ...params,
         },
       });
-
-      // Cache the response
-      this.cache.set(cacheKey, response.data);
       
       return response.data;
     } catch (error: any) {

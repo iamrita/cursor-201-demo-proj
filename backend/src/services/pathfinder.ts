@@ -7,78 +7,32 @@ interface QueueItem {
 }
 
 class PathfinderService {
-  private actorFilmographyCache: Map<number, Movie[]>;
-  private actorDetailsCache: Map<number, Actor>;
-  private movieCastCache: Map<number, CastMember[]>;
-  private movieDetailsCache: Map<number, Movie>;
-
-  constructor() {
-    this.actorFilmographyCache = new Map();
-    this.actorDetailsCache = new Map();
-    this.movieCastCache = new Map();
-    this.movieDetailsCache = new Map();
-  }
-
-  // Clear cache (useful for testing or if you want fresh data)
-  clearCache() {
-    this.actorFilmographyCache.clear();
-    this.actorDetailsCache.clear();
-    this.movieCastCache.clear();
-    this.movieDetailsCache.clear();
-  }
-
-  private async getCachedActorDetails(actorId: number): Promise<Actor> {
-    if (this.actorDetailsCache.has(actorId)) {
-      return this.actorDetailsCache.get(actorId)!;
-    }
-    const actor = await tmdbService.getActorDetails(actorId);
-    this.actorDetailsCache.set(actorId, actor);
-    return actor;
-  }
-
-  private async getCachedActorFilmography(actorId: number): Promise<Movie[]> {
-    if (this.actorFilmographyCache.has(actorId)) {
-      return this.actorFilmographyCache.get(actorId)!;
-    }
-    const movies = await tmdbService.getActorFilmography(actorId);
-    this.actorFilmographyCache.set(actorId, movies);
-    return movies;
-  }
-
-  private async getCachedMovieCast(movieId: number): Promise<CastMember[]> {
-    if (this.movieCastCache.has(movieId)) {
-      return this.movieCastCache.get(movieId)!;
-    }
-    const cast = await tmdbService.getMovieCast(movieId);
-    this.movieCastCache.set(movieId, cast);
-    return cast;
-  }
 
   async findPath(actor1Id: number, actor2Id: number): Promise<PathResult> {
     // Handle edge case: same actor
     if (actor1Id === actor2Id) {
-      const actor = await this.getCachedActorDetails(actor1Id);
+      const actor = await tmdbService.getActorDetails(actor1Id);
       return {
         path: [{ type: 'actor', data: actor }],
         degrees: 0,
       };
     }
 
-    // Get initial actor data (cached)
-    const startActor = await this.getCachedActorDetails(actor1Id);
-    const endActor = await this.getCachedActorDetails(actor2Id);
+    // Get initial actor data
+    const startActor = await tmdbService.getActorDetails(actor1Id);
+    const endActor = await tmdbService.getActorDetails(actor2Id);
 
     // OPTIMIZATION: Check for direct connection first (same movie)
     // Use parallel checking for faster results
     try {
-      const actor1Movies = await this.getCachedActorFilmography(actor1Id);
+      const actor1Movies = await tmdbService.getActorFilmography(actor1Id);
       console.log(`[Pathfinder] Checking ${actor1Movies.length} movies for direct connection between ${startActor.name} (${actor1Id}) and ${endActor.name} (${actor2Id})...`);
       
       // Check first 30 movies in parallel (faster than sequential)
       const moviesToCheck = actor1Movies.slice(0, 30);
       const checkPromises = moviesToCheck.map(async (movie) => {
         try {
-          const cast = await this.getCachedMovieCast(movie.id);
+          const cast = await tmdbService.getMovieCast(movie.id);
           const targetInCast = cast.find(c => c.id === actor2Id);
           return targetInCast ? movie : null;
         } catch (error: any) {
@@ -148,8 +102,8 @@ class PathfinderService {
         return null;
       }
       
-      // Fetch actor's filmography (cached)
-      const actorMovies = await this.getCachedActorFilmography(current.actorId);
+      // Fetch actor's filmography
+      const actorMovies = await tmdbService.getActorFilmography(current.actorId);
       
       // Check up to maxMoviesPerActor movies
       const moviesToCheck = actorMovies.slice(0, maxMoviesPerActor);
@@ -161,7 +115,7 @@ class PathfinderService {
         
         const batchPromises = batch.map(async (movie) => {
           try {
-            const cast = await this.getCachedMovieCast(movie.id);
+            const cast = await tmdbService.getMovieCast(movie.id);
             
             // Check up to maxCastMembers cast members
             const topCast = cast.slice(0, maxCastMembers);
@@ -189,7 +143,7 @@ class PathfinderService {
                 }
                 
                 // Get the actor details for the meeting point
-                const meetingActor = await this.getCachedActorDetails(castMember.id);
+                const meetingActor = await tmdbService.getActorDetails(castMember.id);
                 pathToMeeting.push({ type: 'actor', data: meetingActor });
                 
                 // Build path from meeting point to end (reverse the other path)
@@ -241,7 +195,7 @@ class PathfinderService {
                 }
 
                 // Add next actor to path
-                const nextActor = await this.getCachedActorDetails(castMember.id);
+                const nextActor = await tmdbService.getActorDetails(castMember.id);
                 newPath.push({ type: 'actor', data: nextActor });
 
                 const newQueueItem: QueueItem = {
@@ -346,7 +300,7 @@ class PathfinderService {
         const actorData = step.data as any;
         if (actorData.id && !actorData.name) {
           // It's just an ID, fetch the actor
-          const actor = await this.getCachedActorDetails(actorData.id);
+          const actor = await tmdbService.getActorDetails(actorData.id);
           finalPath.push({ type: 'actor', data: actor });
         } else {
           // It's already a full Actor object
