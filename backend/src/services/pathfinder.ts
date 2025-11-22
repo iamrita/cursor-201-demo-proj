@@ -196,24 +196,27 @@ class PathfinderService {
                 // pathFromOther goes: [otherStart] -> ... -> [meetingActor]
                 // We need: [meetingActor] -> ... -> [otherEnd]
                 const pathFromMeeting: PathStep[] = [];
+                const endActorData = isForward ? endActor : startActor;
                 
-                // Reverse pathFromOther, skipping the last actor (meeting point)
+                // Reverse pathFromOther, skipping the meeting actor and the destination actor
                 for (let i = pathFromOther.length - 1; i >= 0; i--) {
                   const step = pathFromOther[i];
                   if (step.type === 'movie') {
                     pathFromMeeting.push(step);
                   } else if (step.type === 'actor') {
                     const actorData = step.data as Actor;
-                    // Skip the meeting actor (we already added it)
-                    if (actorData.id !== castMember.id) {
+                    // Skip the meeting actor (we already added it) and skip the destination actor (we'll add it at the end)
+                    if (actorData.id !== castMember.id && actorData.id !== endActorData.id) {
                       pathFromMeeting.push(step);
                     }
                   }
                 }
                 
-                // Add the ending actor
-                const endActorData = isForward ? endActor : startActor;
-                pathFromMeeting.push({ type: 'actor', data: endActorData });
+                // Add the ending actor only if there was a path from the other direction
+                // If pathFromOther is empty, the meeting point IS the end actor, so don't add it again
+                if (pathFromOther.length > 0) {
+                  pathFromMeeting.push({ type: 'actor', data: endActorData });
+                }
                 
                 // Combine paths: pathToMeeting + pathFromMeeting
                 const combinedPath = [...pathToMeeting, ...pathFromMeeting];
