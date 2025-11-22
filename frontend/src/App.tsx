@@ -39,10 +39,10 @@ function App() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <header className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Six Degrees of Kevin Bacon
+            Between Two Stars
           </h1>
           <p className="text-gray-600">
-            Find the connection between any two actors through their movies
+            Find the connection between any two actors through their movies.
           </p>
         </header>
 
