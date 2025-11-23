@@ -29,7 +29,6 @@ class PathfinderService {
     // Check cache first for path result (most important optimization)
     const cachedPath = cacheService.getPathResult(actor1Id, actor2Id);
     if (cachedPath) {
-      console.log(`[Pathfinder] ✅ Returning cached path result`);
       return cachedPath;
     }
 
