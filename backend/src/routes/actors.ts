@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import tmdbService from '../services/tmdb';
 import pathfinderService from '../services/pathfinder';
+import cacheService from '../services/cache';
 
 const router = Router();
 
@@ -75,6 +76,34 @@ router.post('/path', async (req: Request, res: Response) => {
     console.error('Error in path route:', error);
     res.status(500).json({ 
       error: 'Failed to find path',
+      message: error.message 
+    });
+  }
+});
+
+// Get cache statistics
+router.get('/cache/stats', async (req: Request, res: Response) => {
+  try {
+    const stats = cacheService.getStats();
+    res.json(stats);
+  } catch (error: any) {
+    console.error('Error getting cache stats:', error);
+    res.status(500).json({ 
+      error: 'Failed to get cache stats',
+      message: error.message 
+    });
+  }
+});
+
+// Clear cache (useful for testing or manual invalidation)
+router.post('/cache/clear', async (req: Request, res: Response) => {
+  try {
+    cacheService.clearCache();
+    res.json({ message: 'Cache cleared successfully' });
+  } catch (error: any) {
+    console.error('Error clearing cache:', error);
+    res.status(500).json({ 
+      error: 'Failed to clear cache',
       message: error.message 
     });
   }

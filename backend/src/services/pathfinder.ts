@@ -1,4 +1,5 @@
 import tmdbService from './tmdb';
+import cacheService from './cache';
 import { Actor, Movie, PathStep, PathResult, CastMember } from '../types';
 
 interface QueueItem {
@@ -7,61 +8,40 @@ interface QueueItem {
 }
 
 class PathfinderService {
-  private actorFilmographyCache: Map<number, Movie[]>;
-  private actorDetailsCache: Map<number, Actor>;
-  private movieCastCache: Map<number, CastMember[]>;
-  private movieDetailsCache: Map<number, Movie>;
-
-  constructor() {
-    this.actorFilmographyCache = new Map();
-    this.actorDetailsCache = new Map();
-    this.movieCastCache = new Map();
-    this.movieDetailsCache = new Map();
-  }
-
   // Clear cache (useful for testing or if you want fresh data)
   clearCache() {
-    this.actorFilmographyCache.clear();
-    this.actorDetailsCache.clear();
-    this.movieCastCache.clear();
-    this.movieDetailsCache.clear();
+    cacheService.clearCache();
   }
 
   private async getCachedActorDetails(actorId: number): Promise<Actor> {
-    if (this.actorDetailsCache.has(actorId)) {
-      return this.actorDetailsCache.get(actorId)!;
-    }
-    const actor = await tmdbService.getActorDetails(actorId);
-    this.actorDetailsCache.set(actorId, actor);
-    return actor;
+    return cacheService.getActorDetails(actorId, () => tmdbService.getActorDetails(actorId));
   }
 
   private async getCachedActorFilmography(actorId: number): Promise<Movie[]> {
-    if (this.actorFilmographyCache.has(actorId)) {
-      return this.actorFilmographyCache.get(actorId)!;
-    }
-    const movies = await tmdbService.getActorFilmography(actorId);
-    this.actorFilmographyCache.set(actorId, movies);
-    return movies;
+    return cacheService.getActorFilmography(actorId, () => tmdbService.getActorFilmography(actorId));
   }
 
   private async getCachedMovieCast(movieId: number): Promise<CastMember[]> {
-    if (this.movieCastCache.has(movieId)) {
-      return this.movieCastCache.get(movieId)!;
-    }
-    const cast = await tmdbService.getMovieCast(movieId);
-    this.movieCastCache.set(movieId, cast);
-    return cast;
+    return cacheService.getMovieCast(movieId, () => tmdbService.getMovieCast(movieId));
   }
 
   async findPath(actor1Id: number, actor2Id: number): Promise<PathResult> {
+    // Check cache first for path result (most important optimization)
+    const cachedPath = cacheService.getPathResult(actor1Id, actor2Id);
+    if (cachedPath) {
+      console.log(`[Pathfinder] ✅ Returning cached path result`);
+      return cachedPath;
+    }
+
     // Handle edge case: same actor
     if (actor1Id === actor2Id) {
       const actor = await this.getCachedActorDetails(actor1Id);
-      return {
+      const result: PathResult = {
         path: [{ type: 'actor', data: actor }],
         degrees: 0,
       };
+      cacheService.setPathResult(actor1Id, actor2Id, result);
+      return result;
     }
 
     // Get initial actor data (cached)
@@ -92,7 +72,7 @@ class PathfinderService {
       
       if (foundMovie) {
         console.log(`[Pathfinder] ✅ Direct connection found! ${startActor.name} and ${endActor.name} both in ${foundMovie.title}`);
-        return {
+        const result: PathResult = {
           path: [
             { type: 'actor', data: startActor },
             { type: 'movie', data: foundMovie },
@@ -100,6 +80,8 @@ class PathfinderService {
           ],
           degrees: 1,
         };
+        cacheService.setPathResult(actor1Id, actor2Id, result);
+        return result;
       }
       console.log(`[Pathfinder] No direct connection found in first 30 movies, trying BFS...`);
     } catch (error: any) {
@@ -315,6 +297,7 @@ class PathfinderService {
     console.log(`[Pathfinder] Starting fast bidirectional BFS (30 movies, 20 cast, depth 4)...`);
     let result = await tryBidirectionalBFS(30, 20, 4, 250);
     if (result) {
+      cacheService.setPathResult(actor1Id, actor2Id, result);
       return result;
     }
     
@@ -322,6 +305,7 @@ class PathfinderService {
     console.log(`[Pathfinder] Fast search found no path, trying comprehensive search (all movies, all cast, depth 6)...`);
     result = await tryBidirectionalBFS(100, 100, 6, 1000);
     if (result) {
+      cacheService.setPathResult(actor1Id, actor2Id, result);
       return result;
     }
     
@@ -329,6 +313,7 @@ class PathfinderService {
     console.log(`[Pathfinder] Comprehensive search found no path, trying exhaustive search (all movies, all cast, depth 8)...`);
     result = await tryBidirectionalBFS(500, 500, 8, 2000);
     if (result) {
+      cacheService.setPathResult(actor1Id, actor2Id, result);
       return result;
     }
 
