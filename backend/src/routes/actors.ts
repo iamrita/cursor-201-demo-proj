@@ -41,18 +41,38 @@ router.post('/path', async (req: Request, res: Response) => {
       });
     }
 
-    const result = await pathfinderService.findPath(actor1Id, actor2Id);
-    res.json(result);
-  } catch (error: any) {
-    console.error('Error finding path:', error);
-    
-    if (error.message === 'No path found between the two actors') {
-      return res.status(404).json({ 
-        error: 'No path found',
-        message: error.message 
+    const startTime = Date.now();
+    try {
+      const result = await pathfinderService.findPath(actor1Id, actor2Id);
+      const endTime = Date.now();
+      const backendDurationMs = endTime - startTime;
+
+      res.json({
+        ...result,
+        backendDurationMs,
+      });
+    } catch (pathError: any) {
+      const endTime = Date.now();
+      const backendDurationMs = endTime - startTime;
+      
+      console.error('Error finding path:', pathError);
+      
+      if (pathError.message === 'No path found between the two actors') {
+        return res.status(404).json({ 
+          error: 'No path found',
+          message: pathError.message,
+          backendDurationMs,
+        });
+      }
+
+      res.status(500).json({ 
+        error: 'Failed to find path',
+        message: pathError.message,
+        backendDurationMs,
       });
     }
-
+  } catch (error: any) {
+    console.error('Error in path route:', error);
     res.status(500).json({ 
       error: 'Failed to find path',
       message: error.message 

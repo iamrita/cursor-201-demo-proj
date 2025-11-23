@@ -9,6 +9,7 @@ function App() {
   const [result, setResult] = useState<PathResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [frontendDurationMs, setFrontendDurationMs] = useState<number | null>(null);
 
   const handleFindPath = async () => {
     if (!actor1 || !actor2) {
@@ -19,11 +20,21 @@ function App() {
     setIsLoading(true);
     setError(null);
     setResult(null);
+    setFrontendDurationMs(null);
 
+    const startTime = Date.now();
     try {
       const pathResult = await findPath(actor1.id, actor2.id);
+      const endTime = Date.now();
+      const frontendDurationMs = endTime - startTime;
+      
       setResult(pathResult);
+      setFrontendDurationMs(frontendDurationMs);
     } catch (err: any) {
+      const endTime = Date.now();
+      const frontendDurationMs = endTime - startTime;
+      setFrontendDurationMs(frontendDurationMs);
+      
       setError(
         err.response?.data?.message ||
         err.message ||
@@ -70,7 +81,12 @@ function App() {
           </div>
         </div>
 
-        <ConnectionPath result={result} isLoading={isLoading} error={error} />
+        <ConnectionPath 
+          result={result} 
+          isLoading={isLoading} 
+          error={error}
+          frontendDurationMs={frontendDurationMs}
+        />
       </div>
     </div>
   );

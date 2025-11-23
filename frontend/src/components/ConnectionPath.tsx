@@ -5,12 +5,14 @@ interface ConnectionPathProps {
   result: PathResult | null;
   isLoading: boolean;
   error: string | null;
+  frontendDurationMs: number | null;
 }
 
 export default function ConnectionPath({
   result,
   isLoading,
   error,
+  frontendDurationMs,
 }: ConnectionPathProps) {
   if (isLoading) {
     return (
@@ -50,9 +52,14 @@ export default function ConnectionPath({
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
           Connection Found!
         </h2>
-        <p className="text-lg text-gray-600">
+        <p className="text-lg text-gray-600 mb-2">
           Degrees of Separation: <span className="font-bold text-blue-600">{result.degrees}</span>
         </p>
+        {frontendDurationMs !== null && (
+          <p className="text-sm text-gray-500">
+            Total time: <span className="font-medium text-gray-700">{(frontendDurationMs / 1000).toFixed(2)}s</span>
+          </p>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center justify-center gap-4 p-6 bg-gray-50 rounded-lg overflow-x-auto">

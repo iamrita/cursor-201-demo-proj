@@ -35,6 +35,7 @@ export interface PathStep {
 export interface PathResult {
   path: PathStep[];
   degrees: number;
+  backendDurationMs?: number;
 }
 
 export const searchActors = async (query: string): Promise<Actor[]> => {

@@ -31,5 +31,6 @@ export interface PathStep {
 export interface PathResult {
   path: PathStep[];
   degrees: number;
+  backendDurationMs?: number;
 }
 
