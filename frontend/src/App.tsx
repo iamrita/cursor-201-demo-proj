@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import ActorSearch from './components/ActorSearch';
 import ConnectionPath from './components/ConnectionPath';
+import PerformanceMetrics from './components/PerformanceMetrics';
 import { Actor, PathResult, findPath } from './services/api';
 
 function App() {
@@ -10,6 +11,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [frontendDurationMs, setFrontendDurationMs] = useState<number | null>(null);
+  const [backendDurationMs, setBackendDurationMs] = useState<number | null>(null);
 
   const handleFindPath = async () => {
     if (!actor1 || !actor2) {
@@ -21,6 +23,7 @@ function App() {
     setError(null);
     setResult(null);
     setFrontendDurationMs(null);
+    setBackendDurationMs(null);
 
     const startTime = Date.now();
     try {
@@ -30,6 +33,7 @@ function App() {
       
       setResult(pathResult);
       setFrontendDurationMs(frontendDurationMs);
+      setBackendDurationMs(pathResult.backendDurationMs || null);
     } catch (err: any) {
       const endTime = Date.now();
       const frontendDurationMs = endTime - startTime;
@@ -88,6 +92,11 @@ function App() {
           isLoading={isLoading} 
           error={error}
           frontendDurationMs={frontendDurationMs}
+        />
+
+        <PerformanceMetrics 
+          frontendDurationMs={frontendDurationMs}
+          backendDurationMs={backendDurationMs}
         />
       </div>
     </div>

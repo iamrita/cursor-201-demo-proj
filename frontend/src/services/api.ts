@@ -38,6 +38,16 @@ export interface PathResult {
   backendDurationMs?: number;
 }
 
+export interface CacheStats {
+  hits: number;
+  misses: number;
+  evictions: number;
+  size: number;
+  hitRate: number;
+  message?: string;
+  timestamp?: string;
+}
+
 export const searchActors = async (query: string): Promise<Actor[]> => {
   const response = await api.get<Actor[]>('/search', {
     params: { q: query },
@@ -54,5 +64,14 @@ export const findPath = async (
     actor2Id,
   });
   return response.data;
+};
+
+export const getCacheStats = async (): Promise<CacheStats> => {
+  const response = await api.get<CacheStats>('/cache/stats');
+  return response.data;
+};
+
+export const clearCache = async (): Promise<void> => {
+  await api.post('/cache/clear');
 };
 
