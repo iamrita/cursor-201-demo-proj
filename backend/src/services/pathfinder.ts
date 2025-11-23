@@ -63,126 +63,79 @@ class PathfinderService {
       // Continue with BFS
     }
 
-    // BIDIRECTIONAL BFS: Search from both actors simultaneously
+    // BFS: Search from actor1 outward until we find actor2
     // Try with optimizations first, then fallback to comprehensive search if needed
-    const tryBidirectionalBFS = async (
+    const tryBFS = async (
       maxMoviesPerActor: number,
       maxCastMembers: number,
       maxDepthLimit: number,
       maxIterationsLimit: number
     ): Promise<PathResult | null> => {
-      const queueForward: QueueItem[] = [
+      const queue: QueueItem[] = [
         { actorId: actor1Id, path: [] }
       ];
-      const queueBackward: QueueItem[] = [
-        { actorId: actor2Id, path: [] }
-      ];
       
-      // Track visited actors from each direction and their full paths
-      const visitedForward = new Map<number, QueueItem>();
-      const visitedBackward = new Map<number, QueueItem>();
-      
-      visitedForward.set(actor1Id, { actorId: actor1Id, path: [] });
-      visitedBackward.set(actor2Id, { actorId: actor2Id, path: [] });
+      // Track visited actors to avoid cycles
+      const visited = new Set<number>();
+      visited.add(actor1Id);
 
       let iterations = 0;
       
-      // Helper function to expand from one direction
-      const expandDirection = async (
-        queue: QueueItem[],
-        visited: Map<number, QueueItem>,
-        otherVisited: Map<number, QueueItem>,
-        isForward: boolean
-      ): Promise<PathResult | null> => {
-      if (queue.length === 0) return null;
-      
-      const current = queue.shift()!;
-      
-      // Check depth limit
-      const currentDepth = current.path.filter(s => s.type === 'actor').length;
-      if (currentDepth >= maxDepthLimit) {
-        return null;
-      }
-      
-      // Fetch actor's filmography
-      const actorMovies = await tmdbService.getActorFilmography(current.actorId);
-      
-      // Check up to maxMoviesPerActor movies
-      const moviesToCheck = actorMovies.slice(0, maxMoviesPerActor);
-      
-      // OPTIMIZATION: Process movies in parallel batches
-      const batchSize = 5;
-      for (let i = 0; i < moviesToCheck.length; i += batchSize) {
-        const batch = moviesToCheck.slice(i, i + batchSize);
+      while (queue.length > 0 && iterations < maxIterationsLimit) {
+        iterations++;
+        const current = queue.shift()!;
         
-        const batchPromises = batch.map(async (movie) => {
-          try {
-            const cast = await tmdbService.getMovieCast(movie.id);
-            
-            // Check up to maxCastMembers cast members
-            const topCast = cast.slice(0, maxCastMembers);
-            
-            // Check if any cast member has been visited from the other direction
-            for (const castMember of topCast) {
-              if (castMember.id === current.actorId) continue;
+        // Check depth limit
+        const currentDepth = current.path.filter(s => s.type === 'actor').length;
+        if (currentDepth >= maxDepthLimit) {
+          continue;
+        }
+        
+        // Fetch actor's filmography
+        const actorMovies = await tmdbService.getActorFilmography(current.actorId);
+        
+        // Check up to maxMoviesPerActor movies
+        const moviesToCheck = actorMovies.slice(0, maxMoviesPerActor);
+        
+        // OPTIMIZATION: Process movies in parallel batches
+        const batchSize = 5;
+        for (let i = 0; i < moviesToCheck.length; i += batchSize) {
+          const batch = moviesToCheck.slice(i, i + batchSize);
+          
+          const batchPromises = batch.map(async (movie) => {
+            try {
+              const cast = await tmdbService.getMovieCast(movie.id);
               
-              // Check if this actor was reached from the other direction
-              if (otherVisited.has(castMember.id)) {
-                // Found meeting point! Combine paths
-                const otherQueueItem = otherVisited.get(castMember.id)!;
-                const pathFromOther = otherQueueItem.path;
-                
-                // Build path from start to meeting point (current direction)
-                const pathToMeeting: PathStep[] = [
+              // Check up to maxCastMembers cast members
+              const topCast = cast.slice(0, maxCastMembers);
+              
+              // Check if target actor is in this movie's cast
+              const targetInCast = topCast.find(c => c.id === actor2Id);
+              if (targetInCast) {
+                // Found the target actor! Build the path
+                const path: PathStep[] = [
                   ...current.path,
                   { type: 'movie', data: movie },
                 ];
                 
                 // Add starting actor if path is empty
                 if (current.path.length === 0) {
-                  const startActorData = isForward ? startActor : endActor;
-                  pathToMeeting.unshift({ type: 'actor', data: startActorData });
+                  path.unshift({ type: 'actor', data: startActor });
                 }
                 
-                // Get the actor details for the meeting point
-                const meetingActor = await tmdbService.getActorDetails(castMember.id);
-                pathToMeeting.push({ type: 'actor', data: meetingActor });
+                // Add ending actor
+                path.push({ type: 'actor', data: endActor });
                 
-                // Build path from meeting point to end (reverse the other path)
-                // pathFromOther goes: [otherStart] -> ... -> [meetingActor]
-                // We need: [meetingActor] -> ... -> [otherEnd]
-                const pathFromMeeting: PathStep[] = [];
-                const endActorData = isForward ? endActor : startActor;
-                
-                // Reverse pathFromOther, skipping the meeting actor and the destination actor
-                for (let i = pathFromOther.length - 1; i >= 0; i--) {
-                  const step = pathFromOther[i];
-                  if (step.type === 'movie') {
-                    pathFromMeeting.push(step);
-                  } else if (step.type === 'actor') {
-                    const actorData = step.data as Actor;
-                    // Skip the meeting actor (we already added it) and skip the destination actor (we'll add it at the end)
-                    if (actorData.id !== castMember.id && actorData.id !== endActorData.id) {
-                      pathFromMeeting.push(step);
-                    }
-                  }
-                }
-                
-                // Add the ending actor only if there was a path from the other direction
-                // If pathFromOther is empty, the meeting point IS the end actor, so don't add it again
-                if (pathFromOther.length > 0) {
-                  pathFromMeeting.push({ type: 'actor', data: endActorData });
-                }
-                
-                // Combine paths: pathToMeeting + pathFromMeeting
-                const combinedPath = [...pathToMeeting, ...pathFromMeeting];
-                
-                const degrees = Math.floor(combinedPath.filter(s => s.type === 'actor').length) - 1;
-                return { path: combinedPath, degrees, found: true };
+                const degrees = Math.floor(path.filter(s => s.type === 'actor').length) - 1;
+                return { path, degrees, found: true };
               }
               
-              // Add to queue if not visited in this direction
-              if (!visited.has(castMember.id)) {
+              // Add unvisited cast members to queue
+              for (const castMember of topCast) {
+                if (castMember.id === current.actorId || visited.has(castMember.id)) {
+                  continue;
+                }
+                
                 const newPath: PathStep[] = [
                   ...current.path,
                   { type: 'movie', data: movie },
@@ -190,100 +143,59 @@ class PathfinderService {
                 
                 // Add current actor if path is empty
                 if (current.path.length === 0) {
-                  const currentActorData = isForward 
-                    ? startActor 
-                    : endActor;
-                  newPath.unshift({ type: 'actor', data: currentActorData });
+                  newPath.unshift({ type: 'actor', data: startActor });
                 }
 
                 // Add next actor to path
                 const nextActor = await tmdbService.getActorDetails(castMember.id);
                 newPath.push({ type: 'actor', data: nextActor });
 
-                const newQueueItem: QueueItem = {
+                visited.add(castMember.id);
+                queue.push({
                   actorId: castMember.id,
                   path: newPath,
-                };
-                
-                visited.set(castMember.id, newQueueItem);
-                queue.push(newQueueItem);
+                });
               }
+              
+              return { found: false };
+            } catch (error: any) {
+              console.error(`Error loading cast for movie ${movie.id}:`, error.message);
+              return { found: false };
             }
-            
-            return { found: false };
-          } catch (error: any) {
-            console.error(`Error loading cast for movie ${movie.id}:`, error.message);
-            return { found: false };
+          });
+          
+          const batchResults = await Promise.all(batchPromises);
+          
+          // Check if any path was found
+          const foundPath = batchResults.find(r => r.found === true);
+          if (foundPath && foundPath.found && foundPath.path && foundPath.degrees !== undefined) {
+            const finalPath = await this.buildFinalPath(foundPath.path);
+            return { path: finalPath, degrees: foundPath.degrees };
           }
-        });
-        
-        const batchResults = await Promise.all(batchPromises);
-        
-        // Check if any path was found
-        const foundPath = batchResults.find(r => r.found === true);
-        if (foundPath && foundPath.found && foundPath.path && foundPath.degrees !== undefined) {
-          const finalPath = await this.buildFinalPath(foundPath.path);
-          return { path: finalPath, degrees: foundPath.degrees };
         }
       }
-      
+
+      // No path found in this attempt
       return null;
     };
     
-    // Alternate expanding from both directions
-    while ((queueForward.length > 0 || queueBackward.length > 0) && iterations < maxIterationsLimit) {
-      iterations++;
-      
-      // Expand forward direction
-      if (queueForward.length > 0) {
-        const result = await expandDirection(
-          queueForward,
-          visitedForward,
-          visitedBackward,
-          true
-        );
-        if (result) {
-          console.log(`[Pathfinder] ✅ Path found via bidirectional BFS after ${iterations} iterations!`);
-          return result;
-        }
-      }
-      
-      // Expand backward direction
-      if (queueBackward.length > 0) {
-        const result = await expandDirection(
-          queueBackward,
-          visitedBackward,
-          visitedForward,
-          false
-        );
-        if (result) {
-          console.log(`[Pathfinder] ✅ Path found via bidirectional BFS after ${iterations} iterations!`);
-          return result;
-        }
-      }
-    }
-
-    // No path found in this attempt
-    return null;
-    };
-    
     // Phase 1: Fast search with optimizations
-    console.log(`[Pathfinder] Starting fast bidirectional BFS (30 movies, 20 cast, depth 4)...`);
-    let result = await tryBidirectionalBFS(30, 20, 4, 250);
+    console.log(`[Pathfinder] Starting fast BFS (30 movies, 20 cast, depth 4)...`);
+    let result = await tryBFS(30, 20, 4, 250);
     if (result) {
       return result;
     }
     
     // Phase 2: More comprehensive search if fast search failed
     console.log(`[Pathfinder] Fast search found no path, trying comprehensive search (all movies, all cast, depth 6)...`);
-    result = await tryBidirectionalBFS(100, 100, 6, 1000);
+    result = await tryBFS(100, 100, 6, 1000);
     if (result) {
       return result;
     }
     
     // Phase 3: Final attempt with very relaxed constraints
     console.log(`[Pathfinder] Comprehensive search found no path, trying exhaustive search (all movies, all cast, depth 8)...`);
-    result = await tryBidirectionalBFS(500, 500, 8, 2000);
+    result = await tryBFS(500, 500, 8, 2000);
     if (result) {
       return result;
     }
