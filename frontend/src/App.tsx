@@ -59,17 +59,19 @@ function App() {
 
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <div className="space-y-6">
-            <ActorSearch
-              label="Actor 1"
-              onSelect={setActor1}
-              selectedActor={actor1}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ActorSearch
+                label="Actor 1"
+                onSelect={setActor1}
+                selectedActor={actor1}
+              />
 
-            <ActorSearch
-              label="Actor 2"
-              onSelect={setActor2}
-              selectedActor={actor2}
-            />
+              <ActorSearch
+                label="Actor 2"
+                onSelect={setActor2}
+                selectedActor={actor2}
+              />
+            </div>
 
             <button
               onClick={handleFindPath}

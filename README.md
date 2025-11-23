@@ -213,7 +213,6 @@ Find the connection path between two actors.
 ## Notes
 
 - The pathfinding algorithm may take some time for actors with extensive filmographies
-- The app caches API responses in memory to improve performance
 - TMDB API has rate limits; the app handles rate limiting with automatic retries
 - Some actors may not have profile photos or movie posters available
 

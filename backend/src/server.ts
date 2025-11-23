@@ -15,6 +15,7 @@ app.use(express.json());
 
 // Health check endpoint
 app.get('/health', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=30'); // Cache for 30 seconds
   res.json({ status: 'ok', message: 'Six Degrees API is running' });
 });
 
@@ -24,6 +25,7 @@ app.use('/api', actorsRouter);
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Unhandled error:', err);
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.status(500).json({ 
     error: 'Internal server error',
     message: err.message 
