@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { Actor, Movie, CastMember } from '../types';
+import cache from './cache';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
@@ -12,6 +13,11 @@ class TMDBService {
     if (!this.apiKey) {
       throw new Error('TMDB_API_KEY environment variable is required');
     }
+
+    // Set up periodic cache cleanup (every 5 minutes)
+    setInterval(() => {
+      cache.cleanup();
+    }, 5 * 60 * 1000);
   }
 
   private async request<T>(endpoint: string, params: Record<string, any> = {}): Promise<T> {
@@ -35,6 +41,15 @@ class TMDBService {
   }
 
   async searchActors(query: string): Promise<Actor[]> {
+    // Cache search results with query as key
+    const cacheKey = `search:${query.toLowerCase()}`;
+    const cached = cache.get<Actor[]>(cacheKey);
+    if (cached) {
+      console.log(`[TMDB] Cache HIT for search: "${query}"`);
+      return cached;
+    }
+
+    console.log(`[TMDB] Cache MISS for search: "${query}"`);
     const response = await this.request<{
       results: Array<{
         id: number;
@@ -48,29 +63,51 @@ class TMDBService {
       }>;
     }>('/search/person', { query });
 
-    return response.results.map(actor => ({
+    const actors = response.results.map(actor => ({
       id: actor.id,
       name: actor.name,
       profile_path: actor.profile_path || undefined,
       known_for: actor.known_for,
     }));
+
+    cache.set(cacheKey, actors);
+    return actors;
   }
 
   async getActorDetails(actorId: number): Promise<Actor> {
+    const cacheKey = `actor:${actorId}`;
+    const cached = cache.get<Actor>(cacheKey);
+    if (cached) {
+      console.log(`[TMDB] Cache HIT for actor ${actorId}`);
+      return cached;
+    }
+
+    console.log(`[TMDB] Cache MISS for actor ${actorId}`);
     const actor = await this.request<{
       id: number;
       name: string;
       profile_path: string | null;
     }>(`/person/${actorId}`);
 
-    return {
+    const result = {
       id: actor.id,
       name: actor.name,
       profile_path: actor.profile_path || undefined,
     };
+
+    cache.set(cacheKey, result);
+    return result;
   }
 
   async getActorFilmography(actorId: number): Promise<Movie[]> {
+    const cacheKey = `filmography:${actorId}`;
+    const cached = cache.get<Movie[]>(cacheKey);
+    if (cached) {
+      console.log(`[TMDB] Cache HIT for filmography of actor ${actorId} (${cached.length} movies)`);
+      return cached;
+    }
+
+    console.log(`[TMDB] Cache MISS for filmography of actor ${actorId}`);
     const response = await this.request<{
       cast: Array<{
         id: number;
@@ -103,10 +140,19 @@ class TMDBService {
       }));
 
     console.log(`[TMDB] Filtered to ${movies.length} movies`);
+    cache.set(cacheKey, movies);
     return movies;
   }
 
   async getMovieCast(movieId: number): Promise<CastMember[]> {
+    const cacheKey = `cast:${movieId}`;
+    const cached = cache.get<CastMember[]>(cacheKey);
+    if (cached) {
+      console.log(`[TMDB] Cache HIT for cast of movie ${movieId} (${cached.length} members)`);
+      return cached;
+    }
+
+    console.log(`[TMDB] Cache MISS for cast of movie ${movieId}`);
     const response = await this.request<{
       cast: Array<{
         id: number;
@@ -116,15 +162,26 @@ class TMDBService {
       }>;
     }>(`/movie/${movieId}/credits`);
 
-    return response.cast.map(member => ({
+    const cast = response.cast.map(member => ({
       id: member.id,
       name: member.name,
       character: member.character || undefined,
       order: member.order,
     }));
+
+    cache.set(cacheKey, cast);
+    return cast;
   }
 
   async getMovieDetails(movieId: number): Promise<Movie> {
+    const cacheKey = `movie:${movieId}`;
+    const cached = cache.get<Movie>(cacheKey);
+    if (cached) {
+      console.log(`[TMDB] Cache HIT for movie ${movieId}`);
+      return cached;
+    }
+
+    console.log(`[TMDB] Cache MISS for movie ${movieId}`);
     const movie = await this.request<{
       id: number;
       title: string;
@@ -132,12 +189,29 @@ class TMDBService {
       poster_path: string | null;
     }>(`/movie/${movieId}`);
 
-    return {
+    const result = {
       id: movie.id,
       title: movie.title,
       release_date: movie.release_date || undefined,
       poster_path: movie.poster_path || undefined,
     };
+
+    cache.set(cacheKey, result);
+    return result;
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats() {
+    return cache.getStats();
+  }
+
+  /**
+   * Clear the cache
+   */
+  clearCache() {
+    cache.clear();
   }
 }
 

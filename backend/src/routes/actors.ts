@@ -4,6 +4,41 @@ import pathfinderService from '../services/pathfinder';
 
 const router = Router();
 
+// Get cache statistics
+router.get('/cache/stats', async (req: Request, res: Response) => {
+  try {
+    const stats = tmdbService.getCacheStats();
+    res.json({
+      ...stats,
+      message: 'Cache statistics',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error('Error getting cache stats:', error);
+    res.status(500).json({ 
+      error: 'Failed to get cache statistics',
+      message: error.message 
+    });
+  }
+});
+
+// Clear cache
+router.post('/cache/clear', async (req: Request, res: Response) => {
+  try {
+    tmdbService.clearCache();
+    res.json({ 
+      message: 'Cache cleared successfully',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error('Error clearing cache:', error);
+    res.status(500).json({ 
+      error: 'Failed to clear cache',
+      message: error.message 
+    });
+  }
+});
+
 // Search actors
 router.get('/search', async (req: Request, res: Response) => {
   try {
