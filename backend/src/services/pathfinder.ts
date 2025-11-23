@@ -1,4 +1,5 @@
 import tmdbService from './tmdb';
+import cacheService from './cache';
 import { Actor, Movie, PathStep, PathResult, CastMember } from '../types';
 
 interface QueueItem {
@@ -11,13 +12,25 @@ class PathfinderService {
   }
 
   async findPath(actor1Id: number, actor2Id: number): Promise<PathResult> {
+    // Check cache first (bidirectional - path from A to B is same as B to A)
+    const cached = cacheService.getPath(actor1Id, actor2Id);
+    if (cached !== null) {
+      console.log(`[Pathfinder Cache] Hit for path: ${actor1Id} -> ${actor2Id}`);
+      return cached;
+    }
+
+    console.log(`[Pathfinder Cache] Miss for path: ${actor1Id} -> ${actor2Id}`);
+
     // Handle edge case: same actor
     if (actor1Id === actor2Id) {
       const actor = await tmdbService.getActorDetails(actor1Id);
-      return {
-        path: [{ type: 'actor', data: actor }],
+      const result: PathResult = {
+        path: [{ type: 'actor' as const, data: actor }],
         degrees: 0,
       };
+      // Cache the result
+      cacheService.setPath(actor1Id, actor2Id, result);
+      return result;
     }
 
     // Get initial actor data
@@ -48,14 +61,17 @@ class PathfinderService {
       
       if (foundMovie) {
         console.log(`[Pathfinder] ✅ Direct connection found! ${startActor.name} and ${endActor.name} both in ${foundMovie.title}`);
-        return {
+        const result: PathResult = {
           path: [
-            { type: 'actor', data: startActor },
-            { type: 'movie', data: foundMovie },
-            { type: 'actor', data: endActor },
+            { type: 'actor' as const, data: startActor },
+            { type: 'movie' as const, data: foundMovie },
+            { type: 'actor' as const, data: endActor },
           ],
           degrees: 1,
         };
+        // Cache the result
+        cacheService.setPath(actor1Id, actor2Id, result);
+        return result;
       }
       console.log(`[Pathfinder] No direct connection found in first 30 movies, trying BFS...`);
     } catch (error: any) {
@@ -183,6 +199,8 @@ class PathfinderService {
     console.log(`[Pathfinder] Starting fast BFS (30 movies, 20 cast, depth 4)...`);
     let result = await tryBFS(30, 20, 4, 250);
     if (result) {
+      // Cache the result
+      cacheService.setPath(actor1Id, actor2Id, result);
       return result;
     }
     
@@ -190,6 +208,8 @@ class PathfinderService {
     console.log(`[Pathfinder] Fast search found no path, trying comprehensive search (all movies, all cast, depth 6)...`);
     result = await tryBFS(100, 100, 6, 1000);
     if (result) {
+      // Cache the result
+      cacheService.setPath(actor1Id, actor2Id, result);
       return result;
     }
     
@@ -197,6 +217,8 @@ class PathfinderService {
     console.log(`[Pathfinder] Comprehensive search found no path, trying exhaustive search (all movies, all cast, depth 8)...`);
     result = await tryBFS(500, 500, 8, 2000);
     if (result) {
+      // Cache the result
+      cacheService.setPath(actor1Id, actor2Id, result);
       return result;
     }
 
