@@ -64,7 +64,8 @@ const ACTOR_PAIRS: ActorPair[] = [
   },
 ];
 
-const API_URL = 'http://localhost:3001/api/path';
+const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3001';
+const API_URL = `${API_BASE_URL}/api/path`;
 
 /**
  * Test a single actor connection
@@ -136,7 +137,7 @@ async function benchmarkConnection(pair: ActorPair): Promise<BenchmarkResult> {
  */
 async function checkServerHealth(): Promise<boolean> {
   try {
-    const response = await fetch('http://localhost:3001/health', {
+    const response = await fetch(`${API_BASE_URL}/health`, {
       method: 'GET',
     });
     return response.ok;
@@ -177,8 +178,9 @@ async function main() {
 
   const isServerRunning = await checkServerHealth();
   if (!isServerRunning) {
-    console.error('❌ Backend server is not running on http://localhost:3001');
-    console.error('Please start the server with: cd backend && npm start');
+    console.error(`❌ Backend server is not running on ${API_BASE_URL}`);
+    console.error('Please ensure the server is accessible at the configured URL.');
+    console.error(`Current API_BASE_URL: ${API_BASE_URL}`);
     process.exit(1);
   }
 
@@ -217,4 +219,5 @@ main().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });
+
 

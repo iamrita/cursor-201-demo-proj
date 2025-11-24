@@ -2,28 +2,17 @@
 description: Run performance benchmarks on sample actor connections and post results to GitHub PR
 ---
 
-Run performance benchmarks on the following actor pairs and post the results as a table in the latest GitHub PR comment:
+Using the Github MCP server, check all open pull requests. 
 
-1. **Christian Bale** (ID: 3894) to **Kate Winslet** (ID: 72129)
+For any open pull request that makes a backend change, run performance benchmarks on the following actor pairs using `benchmark.ts` and post the results as a table in a GitHub PR comment:
+
+
+1. **Christian Bale** (ID: 3894) to **Heath Ledger** (ID: 1810)
 2. **Hugh Jackman** (ID: 6968) to **Heath Ledger** (ID: 1810)
-3. **Christian Bale** (ID: 3894) to **Heath Ledger** (ID: 1810)
+3. **Christian Bale** (ID: 3894) to **Kate Winslet** (ID: 72129)
 4. **Kate Winslet** (ID: 72129) to **Hugh Jackman** (ID: 6968)
 
-For each pair, measure performance metrics similar to the frontend performance service (`frontend/src/services/performance.ts`):
-
-**Performance Measurement Approach:**
-- Record `startTime = Date.now()` before initiating the request
-- Make a POST request to `http://localhost:3001/api/path` with body: `{ "actor1Id": X, "actor2Id": Y }`
-- Record `endTime = Date.now()` after receiving the complete response
-- Calculate `totalDuration = endTime - startTime` (this mirrors the frontend's total operation time)
-- Extract `backendDurationMs` from the response body (the backend already provides this)
-- Calculate `networkDuration = totalDuration - backendDurationMs` (time spent in network overhead, serialization, etc.)
-- Record the number of degrees of separation from `result.degrees`
-- Note if the request succeeded or failed
-
-This measurement approach mirrors what users experience in the frontend (as implemented in `performance.ts`), measuring the complete operation from start to finish, not just network request time.
-
-After running all benchmarks, create a markdown table with the following format:
+The table should be in markdown with the following format:
 
 ```markdown
 ## 🎯 Performance Benchmark Results
@@ -52,18 +41,11 @@ After running all benchmarks, create a markdown table with the following format:
 - **Network Duration:** Time spent in network overhead and data transfer
 
 ### Notes
-- All tests performed against local development server
-- Metrics mirror the frontend PerformanceMetrics interface (totalDuration, networkDuration, backendDuration)
 - Times may vary based on TMDB API response times and network conditions
 - Backend time includes TMDB API calls and pathfinding algorithm execution
 ```
 
 Then post this table as a comment to the latest open pull request in the repository using the GitHub MCP tools.
 
-Steps:
-1. Check if the backend server is running on port 3001 (check terminals or start it if needed)
-2. Run the 4 benchmark tests sequentially
-3. Calculate summary statistics
-4. Find the latest open PR for this repository
-5. Post the formatted results as a PR comment
+
 
