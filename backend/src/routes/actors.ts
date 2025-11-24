@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import tmdbService from '../services/tmdb';
 import pathfinderService from '../services/pathfinder';
+import cache from '../services/cache';
 
 const router = Router();
 
@@ -78,6 +79,18 @@ router.post('/path', async (req: Request, res: Response) => {
       message: error.message 
     });
   }
+});
+
+// Cache statistics endpoint
+router.get('/cache/stats', (req: Request, res: Response) => {
+  const stats = cache.getStats();
+  res.json(stats);
+});
+
+// Clear cache endpoint (useful for testing/debugging)
+router.post('/cache/clear', (req: Request, res: Response) => {
+  cache.clear();
+  res.json({ message: 'Cache cleared successfully' });
 });
 
 export default router;
