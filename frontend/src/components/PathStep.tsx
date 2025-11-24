@@ -1,4 +1,5 @@
-import { PathStep as PathStepType } from '../services/api';
+import { View, Text, Image, Flex } from '@adobe/react-spectrum';
+import { PathStep as PathStepType, Actor, Movie } from '../services/api';
 
 interface PathStepProps {
   step: PathStepType;
@@ -7,61 +8,106 @@ interface PathStepProps {
 
 export default function PathStep({ step, isLast }: PathStepProps) {
   if (step.type === 'actor') {
-    const actor = step.data;
+    const actor = step.data as Actor;
     return (
-      <div className="flex items-center gap-4">
-        <div className="flex flex-col items-center">
+      <Flex direction="row" alignItems="center" gap="size-300">
+        <Flex direction="column" alignItems="center" gap="size-100">
           {actor.profile_path ? (
-            <img
+            <Image
               src={`https://image.tmdb.org/t/p/w92${actor.profile_path}`}
               alt={actor.name}
-              className="w-16 h-16 rounded-full object-cover border-2 border-blue-500"
+              width="64px"
+              height="64px"
+              objectFit="cover"
+              UNSAFE_style={{ 
+                borderRadius: '50%',
+                border: '2px solid #0066cc'
+              }}
             />
           ) : (
-            <div className="w-16 h-16 rounded-full bg-gray-300 flex items-center justify-center border-2 border-blue-500">
-              <span className="text-gray-600 text-xs">No Image</span>
-            </div>
+            <View
+              width="64px"
+              height="64px"
+              backgroundColor="gray-300"
+              UNSAFE_style={{ 
+                borderRadius: '50%',
+                border: '2px solid #0066cc',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Text UNSAFE_style={{ fontSize: '10px' }}>No Image</Text>
+            </View>
           )}
-          <span className="mt-2 text-sm font-medium text-gray-900 max-w-[120px] text-center">
+          <Text UNSAFE_style={{ 
+            fontSize: '14px', 
+            fontWeight: '500',
+            maxWidth: '120px',
+            textAlign: 'center'
+          }}>
             {actor.name}
-          </span>
-        </div>
+          </Text>
+        </Flex>
         {!isLast && (
-          <div className="text-2xl text-gray-400">→</div>
+          <Text UNSAFE_style={{ fontSize: '24px', color: '#999' }}>→</Text>
         )}
-      </div>
+      </Flex>
     );
   } else {
-    const movie = step.data;
+    const movie = step.data as Movie;
     return (
-      <div className="flex items-center gap-4">
-        <div className="flex flex-col items-center">
+      <Flex direction="row" alignItems="center" gap="size-300">
+        <Flex direction="column" alignItems="center" gap="size-100">
           {movie.poster_path ? (
-            <img
+            <Image
               src={`https://image.tmdb.org/t/p/w92${movie.poster_path}`}
               alt={movie.title}
-              className="w-16 h-24 object-cover rounded border-2 border-purple-500"
+              width="64px"
+              height="96px"
+              objectFit="cover"
+              UNSAFE_style={{ 
+                borderRadius: '4px',
+                border: '2px solid #8B5CF6'
+              }}
             />
           ) : (
-            <div className="w-16 h-24 bg-gray-300 rounded flex items-center justify-center border-2 border-purple-500">
-              <span className="text-gray-600 text-xs text-center px-1">
+            <View
+              width="64px"
+              height="96px"
+              backgroundColor="gray-300"
+              UNSAFE_style={{ 
+                borderRadius: '4px',
+                border: '2px solid #8B5CF6',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '4px'
+              }}
+            >
+              <Text UNSAFE_style={{ fontSize: '10px', textAlign: 'center' }}>
                 No Poster
-              </span>
-            </div>
+              </Text>
+            </View>
           )}
-          <span className="mt-2 text-sm font-medium text-gray-900 max-w-[120px] text-center">
+          <Text UNSAFE_style={{ 
+            fontSize: '14px', 
+            fontWeight: '500',
+            maxWidth: '120px',
+            textAlign: 'center'
+          }}>
             {movie.title}
-          </span>
+          </Text>
           {movie.release_date && (
-            <span className="text-xs text-gray-500">
+            <Text UNSAFE_style={{ fontSize: '12px', color: '#666' }}>
               {new Date(movie.release_date).getFullYear()}
-            </span>
+            </Text>
           )}
-        </div>
+        </Flex>
         {!isLast && (
-          <div className="text-2xl text-gray-400">→</div>
+          <Text UNSAFE_style={{ fontSize: '24px', color: '#999' }}>→</Text>
         )}
-      </div>
+      </Flex>
     );
   }
 }

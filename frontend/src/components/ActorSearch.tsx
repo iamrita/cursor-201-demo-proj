@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { ComboBox, Item, Button } from '@adobe/react-spectrum';
 import { Actor, searchActors } from '../services/api';
 
 interface ActorSearchProps {
@@ -12,27 +13,17 @@ export default function ActorSearch({
   onSelect,
   selectedActor,
 }: ActorSearchProps) {
-  const [query, setQuery] = useState('');
+  const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState<Actor[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-  const searchRef = useRef<HTMLDivElement>(null);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Sync inputValue with selectedActor prop when it changes externally
   useEffect(() => {
-    // Close suggestions when clicking outside
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        searchRef.current &&
-        !searchRef.current.contains(event.target as Node)
-      ) {
-        setShowSuggestions(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (selectedActor) {
+      setInputValue(selectedActor.name);
+    }
+  }, [selectedActor?.id]);
 
   useEffect(() => {
     // Clear previous timer
@@ -40,8 +31,8 @@ export default function ActorSearch({
       clearTimeout(debounceTimer.current);
     }
 
-    // If query is empty, clear suggestions
-    if (!query.trim()) {
+    // If input is empty, clear suggestions
+    if (!inputValue.trim()) {
       setSuggestions([]);
       setIsLoading(false);
       return;
@@ -53,9 +44,8 @@ export default function ActorSearch({
     // Debounce search
     debounceTimer.current = setTimeout(async () => {
       try {
-        const results = await searchActors(query);
+        const results = await searchActors(inputValue);
         setSuggestions(results);
-        setShowSuggestions(true);
       } catch (error) {
         console.error('Error searching actors:', error);
         setSuggestions([]);
@@ -69,71 +59,74 @@ export default function ActorSearch({
         clearTimeout(debounceTimer.current);
       }
     };
-  }, [query]);
+  }, [inputValue]);
 
-  const handleSelect = (actor: Actor) => {
-    setQuery(actor.name);
-    setShowSuggestions(false);
-    onSelect(actor);
+  const items = useMemo(() => {
+    const suggestionItems = suggestions.map((actor) => ({
+      id: actor.id.toString(),
+      name: actor.name,
+      actor: actor,
+    }));
+    
+    // Include selectedActor in items if it's not already in suggestions
+    if (selectedActor && !suggestions.find(a => a.id === selectedActor.id)) {
+      return [{
+        id: selectedActor.id.toString(),
+        name: selectedActor.name,
+        actor: selectedActor,
+      }, ...suggestionItems];
+    }
+    
+    return suggestionItems;
+  }, [suggestions, selectedActor]);
+
+  const handleSelectionChange = (key: React.Key | null) => {
+    if (key === null) {
+      onSelect(null);
+      setInputValue('');
+      return;
+    }
+    const selectedItem = items.find((item) => item.id === key.toString());
+    if (selectedItem) {
+      onSelect(selectedItem.actor);
+      setInputValue(selectedItem.name);
+    }
   };
 
   const handleClear = () => {
-    setQuery('');
+    setInputValue('');
     setSuggestions([]);
     onSelect(null);
   };
 
+  const selectedKey = selectedActor ? selectedActor.id.toString() : null;
+
   return (
-    <div className="w-full" ref={searchRef}>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        {label}
-      </label>
-      <div className="relative">
-        <div className="relative">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => {
-              if (suggestions.length > 0) {
-                setShowSuggestions(true);
-              }
-            }}
-            placeholder="Search for an actor..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-          />
-          {selectedActor && (
-            <button
-              onClick={handleClear}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-
-        {isLoading && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-          </div>
-        )}
-
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-            {suggestions.map((actor) => (
-              <button
-                key={actor.id}
-                onClick={() => handleSelect(actor)}
-                className="w-full px-4 py-3 text-left hover:bg-gray-100 transition-colors border-b border-gray-100 last:border-b-0"
-              >
-                <div className="font-medium text-gray-900 truncate">
-                  {actor.name}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+    <div>
+      <ComboBox
+        label={label}
+        inputValue={inputValue}
+        onInputChange={setInputValue}
+        selectedKey={selectedKey}
+        onSelectionChange={handleSelectionChange}
+        items={items}
+        loadingState={isLoading ? 'loading' : 'idle'}
+        allowsCustomValue={false}
+        menuTrigger="focus"
+        width="100%"
+      >
+        {(item) => <Item key={item.id}>{item.name}</Item>}
+      </ComboBox>
+      {selectedActor && (
+        <Button
+          variant="secondary"
+          onPress={handleClear}
+          marginTop="size-100"
+          width="100%"
+        >
+          Clear Selection
+        </Button>
+      )}
     </div>
   );
 }

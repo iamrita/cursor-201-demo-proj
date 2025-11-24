@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { View, Heading, Text, Button, Flex, Content } from '@adobe/react-spectrum';
 import ActorSearch from './components/ActorSearch';
 import ConnectionPath from './components/ConnectionPath';
 import { Actor, PathResult, findPath } from './services/api';
@@ -46,51 +47,60 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <header className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Between Two Stars
-          </h1>
-          <p className="text-gray-600">
-            Find the connection between any two actors through their movies.
-          </p>
-        </header>
+    <View backgroundColor="gray-75" minHeight="100vh">
+      <Content>
+          <View marginTop="size-800" marginBottom="size-600">
+            <Flex direction="column" alignItems="center" gap="size-200">
+              <Heading level={1}>Between Two Stars</Heading>
+              <Text>Find the connection between any two actors through their movies.</Text>
+            </Flex>
+          </View>
 
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <ActorSearch
-                label="Actor 1"
-                onSelect={setActor1}
-                selectedActor={actor1}
-              />
+          <View 
+            backgroundColor="gray-50" 
+            padding="size-600" 
+            borderRadius="regular"
+            marginBottom="size-400"
+            UNSAFE_style={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)' }}
+          >
+            <Flex direction="column" gap="size-400">
+              <Flex direction={{ base: 'column', M: 'row' }} gap="size-400">
+                <View flex="1">
+                  <ActorSearch
+                    label="Actor 1"
+                    onSelect={setActor1}
+                    selectedActor={actor1}
+                  />
+                </View>
 
-              <ActorSearch
-                label="Actor 2"
-                onSelect={setActor2}
-                selectedActor={actor2}
-              />
-            </div>
+                <View flex="1">
+                  <ActorSearch
+                    label="Actor 2"
+                    onSelect={setActor2}
+                    selectedActor={actor2}
+                  />
+                </View>
+              </Flex>
 
-            <button
-              onClick={handleFindPath}
-              disabled={!actor1 || !actor2 || isLoading}
-              className="w-full py-3 px-6 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-            >
-              {isLoading ? 'Finding Connection...' : 'Find Connection'}
-            </button>
-          </div>
-        </div>
+              <Button
+                variant="cta"
+                onPress={handleFindPath}
+                isDisabled={!actor1 || !actor2 || isLoading}
+                width="100%"
+              >
+                {isLoading ? 'Finding Connection...' : 'Find Connection'}
+              </Button>
+            </Flex>
+          </View>
 
-        <ConnectionPath 
-          result={result} 
-          isLoading={isLoading} 
-          error={error}
-          frontendDurationMs={frontendDurationMs}
-        />
-      </div>
-    </div>
+          <ConnectionPath 
+            result={result} 
+            isLoading={isLoading} 
+            error={error}
+            frontendDurationMs={frontendDurationMs}
+          />
+      </Content>
+    </View>
   );
 }
 
