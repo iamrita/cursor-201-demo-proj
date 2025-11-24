@@ -1,3 +1,11 @@
+import { 
+  View, 
+  Flex, 
+  Heading, 
+  Text, 
+  ProgressCircle
+} from '@adobe/react-spectrum';
+import Alert from '@spectrum-icons/workflow/Alert';
 import { PathResult } from '../services/api';
 import PathStep from './PathStep';
 
@@ -16,29 +24,48 @@ export default function ConnectionPath({
 }: ConnectionPathProps) {
   if (isLoading) {
     return (
-      <div className="mt-8 p-8 bg-white rounded-lg shadow-md">
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-          <p className="text-gray-600">Finding the connection...</p>
-          <p className="text-sm text-gray-500 mt-2">
+      <View 
+        backgroundColor="gray-50" 
+        borderRadius="medium" 
+        padding="size-600"
+      >
+        <Flex 
+          direction="column" 
+          alignItems="center" 
+          justifyContent="center" 
+          gap="size-200"
+        >
+          <ProgressCircle 
+            aria-label="Finding connection" 
+            isIndeterminate 
+            size="L"
+          />
+          <Text>Finding the connection...</Text>
+          <Text UNSAFE_style={{ fontSize: '14px', color: 'var(--spectrum-global-color-gray-600)' }}>
             This may take a moment
-          </p>
-        </div>
-      </div>
+          </Text>
+        </Flex>
+      </View>
     );
   }
 
   if (error) {
     return (
-      <div className="mt-8 p-6 bg-red-50 border border-red-200 rounded-lg">
-        <div className="flex items-center gap-2">
-          <span className="text-red-600 text-xl">⚠️</span>
-          <div>
-            <h3 className="text-red-800 font-medium">Error</h3>
-            <p className="text-red-600 text-sm mt-1">{error}</p>
-          </div>
-        </div>
-      </div>
+      <View 
+        backgroundColor="negative" 
+        borderRadius="medium" 
+        padding="size-300"
+        borderWidth="thin"
+        borderColor="negative"
+      >
+        <Flex gap="size-100" alignItems="start">
+          <Alert color="negative" size="M" />
+          <Flex direction="column" gap="size-50">
+            <Heading level={4}>Error</Heading>
+            <Text UNSAFE_style={{ fontSize: '14px' }}>{error}</Text>
+          </Flex>
+        </Flex>
+      </View>
     );
   }
 
@@ -47,43 +74,58 @@ export default function ConnectionPath({
   }
 
   return (
-    <div className="mt-8 p-8 bg-white rounded-lg shadow-md">
-      <div className="mb-6 text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Connection Found!
-        </h2>
-        <p className="text-lg text-gray-600 mb-2">
-          Degrees of Separation: <span className="font-bold text-blue-600">{result.degrees}</span>
-        </p>
+    <View 
+      backgroundColor="gray-50" 
+      borderRadius="medium" 
+      padding="size-400"
+    >
+      <Flex direction="column" gap="size-300" alignItems="center">
+        <Heading level={2}>Connection Found!</Heading>
+        <Text>
+          Degrees of Separation: <strong style={{ color: 'var(--spectrum-global-color-blue-600)' }}>{result.degrees}</strong>
+        </Text>
         {frontendDurationMs !== null && (
-          <p className="text-sm text-gray-500">
-            Total time: <span className="font-medium text-gray-700">{(frontendDurationMs / 1000).toFixed(2)}s</span>
-          </p>
+          <Text UNSAFE_style={{ fontSize: '14px', color: 'var(--spectrum-global-color-gray-600)' }}>
+            Total time: <strong>{(frontendDurationMs / 1000).toFixed(2)}s</strong>
+          </Text>
         )}
-      </div>
+      </Flex>
 
-      <div className="flex flex-wrap items-center justify-center gap-4 p-6 bg-gray-50 rounded-lg overflow-x-auto">
-        {result.path.map((step, index) => (
-          <PathStep
-            key={`${step.type}-${step.data.id}-${index}`}
-            step={step}
-            isLast={index === result.path.length - 1}
-          />
-        ))}
-      </div>
+      <View 
+        backgroundColor="gray-100" 
+        borderRadius="medium" 
+        padding="size-300" 
+        marginTop="size-300"
+        UNSAFE_style={{ overflowX: 'auto' }}
+      >
+        <Flex 
+          wrap="wrap" 
+          alignItems="center" 
+          justifyContent="center" 
+          gap="size-200"
+        >
+          {result.path.map((step, index) => (
+            <PathStep
+              key={`${step.type}-${step.data.id}-${index}`}
+              step={step}
+              isLast={index === result.path.length - 1}
+            />
+          ))}
+        </Flex>
+      </View>
 
-      <div className="mt-6 text-center text-sm text-gray-500">
-        <p>
+      <Flex justifyContent="center" marginTop="size-300">
+        <Text UNSAFE_style={{ fontSize: '14px', color: 'var(--spectrum-global-color-gray-600)', textAlign: 'center' }}>
           Path: {result.path
             .map((step) =>
               step.type === 'actor'
-                ? step.data.name
-                : step.data.title
+                ? (step.data as any).name
+                : (step.data as any).title
             )
             .join(' → ')}
-        </p>
-      </div>
-    </div>
+        </Text>
+      </Flex>
+    </View>
   );
 }
 

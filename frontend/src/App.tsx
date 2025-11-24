@@ -1,4 +1,12 @@
 import { useState } from 'react';
+import { 
+  View, 
+  Heading, 
+  Text, 
+  Button, 
+  Grid, 
+  Flex 
+} from '@adobe/react-spectrum';
 import ActorSearch from './components/ActorSearch';
 import ConnectionPath from './components/ConnectionPath';
 import { Actor, PathResult, findPath } from './services/api';
@@ -46,20 +54,36 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <header className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+    <View 
+      backgroundColor="gray-100" 
+      minHeight="100vh" 
+      padding="size-400"
+    >
+      <View 
+        maxWidth="size-6000" 
+        marginX="auto"
+      >
+        <Flex direction="column" gap="size-300" alignItems="center" marginBottom="size-400">
+          <Heading level={1} marginTop="size-300">
             Between Two Stars
-          </h1>
-          <p className="text-gray-600">
+          </Heading>
+          <Text>
             Find the connection between any two actors through their movies.
-          </p>
-        </header>
+          </Text>
+        </Flex>
 
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <View 
+          backgroundColor="gray-50" 
+          borderRadius="medium" 
+          padding="size-400"
+          marginBottom="size-300"
+        >
+          <Flex direction="column" gap="size-300">
+            <Grid 
+              columns={['1fr', '1fr']} 
+              gap="size-300"
+              autoRows="auto"
+            >
               <ActorSearch
                 label="Actor 1"
                 onSelect={setActor1}
@@ -71,17 +95,18 @@ function App() {
                 onSelect={setActor2}
                 selectedActor={actor2}
               />
-            </div>
+            </Grid>
 
-            <button
-              onClick={handleFindPath}
-              disabled={!actor1 || !actor2 || isLoading}
-              className="w-full py-3 px-6 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            <Button
+              variant="accent"
+              onPress={handleFindPath}
+              isDisabled={!actor1 || !actor2 || isLoading}
+              width="100%"
             >
               {isLoading ? 'Finding Connection...' : 'Find Connection'}
-            </button>
-          </div>
-        </div>
+            </Button>
+          </Flex>
+        </View>
 
         <ConnectionPath 
           result={result} 
@@ -89,8 +114,8 @@ function App() {
           error={error}
           frontendDurationMs={frontendDurationMs}
         />
-      </div>
-    </div>
+      </View>
+    </View>
   );
 }
 

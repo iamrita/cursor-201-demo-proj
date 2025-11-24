@@ -1,4 +1,5 @@
-import { PathStep as PathStepType } from '../services/api';
+import { View, Flex, Text } from '@adobe/react-spectrum';
+import { PathStep as PathStepType, Actor, Movie } from '../services/api';
 
 interface PathStepProps {
   step: PathStepType;
@@ -7,61 +8,138 @@ interface PathStepProps {
 
 export default function PathStep({ step, isLast }: PathStepProps) {
   if (step.type === 'actor') {
-    const actor = step.data;
+    const actor = step.data as Actor;
     return (
-      <div className="flex items-center gap-4">
-        <div className="flex flex-col items-center">
+      <Flex alignItems="center" gap="size-200">
+        <Flex direction="column" alignItems="center" gap="size-100">
           {actor.profile_path ? (
-            <img
-              src={`https://image.tmdb.org/t/p/w92${actor.profile_path}`}
-              alt={actor.name}
-              className="w-16 h-16 rounded-full object-cover border-2 border-blue-500"
-            />
+            <View
+              UNSAFE_style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                border: '2px solid var(--spectrum-global-color-blue-600)',
+              }}
+            >
+              <img
+                src={`https://image.tmdb.org/t/p/w92${actor.profile_path}`}
+                alt={actor.name}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+            </View>
           ) : (
-            <div className="w-16 h-16 rounded-full bg-gray-300 flex items-center justify-center border-2 border-blue-500">
-              <span className="text-gray-600 text-xs">No Image</span>
-            </div>
+            <View
+              backgroundColor="gray-300"
+              UNSAFE_style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid var(--spectrum-global-color-blue-600)',
+              }}
+            >
+              <Text UNSAFE_style={{ fontSize: '12px', color: 'var(--spectrum-global-color-gray-700)' }}>
+                No Image
+              </Text>
+            </View>
           )}
-          <span className="mt-2 text-sm font-medium text-gray-900 max-w-[120px] text-center">
+          <Text
+            UNSAFE_style={{
+              fontSize: '14px',
+              fontWeight: 500,
+              maxWidth: '120px',
+              textAlign: 'center',
+            }}
+          >
             {actor.name}
-          </span>
-        </div>
+          </Text>
+        </Flex>
         {!isLast && (
-          <div className="text-2xl text-gray-400">→</div>
+          <Text UNSAFE_style={{ fontSize: '24px', color: 'var(--spectrum-global-color-gray-500)' }}>
+            →
+          </Text>
         )}
-      </div>
+      </Flex>
     );
   } else {
-    const movie = step.data;
+    const movie = step.data as Movie;
     return (
-      <div className="flex items-center gap-4">
-        <div className="flex flex-col items-center">
+      <Flex alignItems="center" gap="size-200">
+        <Flex direction="column" alignItems="center" gap="size-100">
           {movie.poster_path ? (
-            <img
-              src={`https://image.tmdb.org/t/p/w92${movie.poster_path}`}
-              alt={movie.title}
-              className="w-16 h-24 object-cover rounded border-2 border-purple-500"
-            />
+            <View
+              UNSAFE_style={{
+                width: '64px',
+                height: '96px',
+                borderRadius: '4px',
+                overflow: 'hidden',
+                border: '2px solid var(--spectrum-global-color-purple-600)',
+              }}
+            >
+              <img
+                src={`https://image.tmdb.org/t/p/w92${movie.poster_path}`}
+                alt={movie.title}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+            </View>
           ) : (
-            <div className="w-16 h-24 bg-gray-300 rounded flex items-center justify-center border-2 border-purple-500">
-              <span className="text-gray-600 text-xs text-center px-1">
+            <View
+              backgroundColor="gray-300"
+              UNSAFE_style={{
+                width: '64px',
+                height: '96px',
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid var(--spectrum-global-color-purple-600)',
+              }}
+            >
+              <Text
+                UNSAFE_style={{
+                  fontSize: '12px',
+                  color: 'var(--spectrum-global-color-gray-700)',
+                  textAlign: 'center',
+                  padding: '0 4px',
+                }}
+              >
                 No Poster
-              </span>
-            </div>
+              </Text>
+            </View>
           )}
-          <span className="mt-2 text-sm font-medium text-gray-900 max-w-[120px] text-center">
+          <Text
+            UNSAFE_style={{
+              fontSize: '14px',
+              fontWeight: 500,
+              maxWidth: '120px',
+              textAlign: 'center',
+            }}
+          >
             {movie.title}
-          </span>
+          </Text>
           {movie.release_date && (
-            <span className="text-xs text-gray-500">
+            <Text UNSAFE_style={{ fontSize: '12px', color: 'var(--spectrum-global-color-gray-600)' }}>
               {new Date(movie.release_date).getFullYear()}
-            </span>
+            </Text>
           )}
-        </div>
+        </Flex>
         {!isLast && (
-          <div className="text-2xl text-gray-400">→</div>
+          <Text UNSAFE_style={{ fontSize: '24px', color: 'var(--spectrum-global-color-gray-500)' }}>
+            →
+          </Text>
         )}
-      </div>
+      </Flex>
     );
   }
 }

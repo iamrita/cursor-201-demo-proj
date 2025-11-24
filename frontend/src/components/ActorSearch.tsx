@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { ComboBox, Item } from '@adobe/react-spectrum';
 import { Actor, searchActors } from '../services/api';
 
 interface ActorSearchProps {
@@ -12,27 +13,10 @@ export default function ActorSearch({
   onSelect,
   selectedActor,
 }: ActorSearchProps) {
-  const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<Actor[]>([]);
+  const [inputValue, setInputValue] = useState('');
+  const [items, setItems] = useState<Actor[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
-  const searchRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Close suggestions when clicking outside
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        searchRef.current &&
-        !searchRef.current.contains(event.target as Node)
-      ) {
-        setShowSuggestions(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Clear previous timer
@@ -41,8 +25,8 @@ export default function ActorSearch({
     }
 
     // If query is empty, clear suggestions
-    if (!query.trim()) {
-      setSuggestions([]);
+    if (!inputValue.trim()) {
+      setItems([]);
       setIsLoading(false);
       return;
     }
@@ -53,12 +37,11 @@ export default function ActorSearch({
     // Debounce search
     debounceTimer.current = setTimeout(async () => {
       try {
-        const results = await searchActors(query);
-        setSuggestions(results);
-        setShowSuggestions(true);
+        const results = await searchActors(inputValue);
+        setItems(results);
       } catch (error) {
         console.error('Error searching actors:', error);
-        setSuggestions([]);
+        setItems([]);
       } finally {
         setIsLoading(false);
       }
@@ -69,72 +52,34 @@ export default function ActorSearch({
         clearTimeout(debounceTimer.current);
       }
     };
-  }, [query]);
+  }, [inputValue]);
 
-  const handleSelect = (actor: Actor) => {
-    setQuery(actor.name);
-    setShowSuggestions(false);
-    onSelect(actor);
-  };
-
-  const handleClear = () => {
-    setQuery('');
-    setSuggestions([]);
-    onSelect(null);
+  const handleSelectionChange = (key: any) => {
+    if (key) {
+      const actor = items.find(a => a.id.toString() === key);
+      if (actor) {
+        onSelect(actor);
+      }
+    } else {
+      onSelect(null);
+    }
   };
 
   return (
-    <div className="w-full" ref={searchRef}>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        {label}
-      </label>
-      <div className="relative">
-        <div className="relative">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => {
-              if (suggestions.length > 0) {
-                setShowSuggestions(true);
-              }
-            }}
-            placeholder="Search for an actor..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-          />
-          {selectedActor && (
-            <button
-              onClick={handleClear}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-
-        {isLoading && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-          </div>
-        )}
-
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-            {suggestions.map((actor) => (
-              <button
-                key={actor.id}
-                onClick={() => handleSelect(actor)}
-                className="w-full px-4 py-3 text-left hover:bg-gray-100 transition-colors border-b border-gray-100 last:border-b-0"
-              >
-                <div className="font-medium text-gray-900 truncate">
-                  {actor.name}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+    <ComboBox
+      label={label}
+      width="100%"
+      placeholder="Search for an actor..."
+      inputValue={inputValue}
+      onInputChange={setInputValue}
+      items={items}
+      selectedKey={selectedActor?.id.toString() || null}
+      onSelectionChange={handleSelectionChange}
+      loadingState={isLoading ? 'loading' : 'idle'}
+      allowsCustomValue
+    >
+      {(item: Actor) => <Item key={item.id.toString()}>{item.name}</Item>}
+    </ComboBox>
   );
 }
 
