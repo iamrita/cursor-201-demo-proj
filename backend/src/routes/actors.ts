@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import tmdbService from '../services/tmdb';
 import pathfinderService from '../services/pathfinder';
+import { actorCache, movieCache, filmographyCache, castCache, searchCache } from '../services/cache';
 
 const router = Router();
 
@@ -75,6 +76,26 @@ router.post('/path', async (req: Request, res: Response) => {
     console.error('Error in path route:', error);
     res.status(500).json({ 
       error: 'Failed to find path',
+      message: error.message 
+    });
+  }
+});
+
+// Cache statistics endpoint
+router.get('/cache/stats', (req: Request, res: Response) => {
+  try {
+    const stats = {
+      actor: actorCache.getStats(),
+      movie: movieCache.getStats(),
+      filmography: filmographyCache.getStats(),
+      cast: castCache.getStats(),
+      search: searchCache.getStats(),
+    };
+    res.json(stats);
+  } catch (error: any) {
+    console.error('Error getting cache stats:', error);
+    res.status(500).json({ 
+      error: 'Failed to get cache stats',
       message: error.message 
     });
   }
