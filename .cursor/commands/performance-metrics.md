@@ -4,13 +4,13 @@ description: Run performance benchmarks on sample actor connections and post res
 
 Using the Github MCP server, check all open pull requests. 
 
-For any open pull request that makes a backend change, run performance benchmarks on the following actor pairs using `benchmark.ts` and post the results as a table in a GitHub PR comment:
+For any open pull request that is intended to improve backend performance, run performance benchmarks on the following actor pairs using `benchmark.ts` and post the results as a table in a GitHub PR comment:
 
 
 1. **Christian Bale** (ID: 3894) to **Heath Ledger** (ID: 1810)
 2. **Hugh Jackman** (ID: 6968) to **Heath Ledger** (ID: 1810)
-3. **Christian Bale** (ID: 3894) to **Kate Winslet** (ID: 72129)
-4. **Kate Winslet** (ID: 72129) to **Hugh Jackman** (ID: 6968)
+3. **Hugh Jackman** (ID: 6968) to **Kate Winslet** (ID: 72129)
+4. **Kate Winslet** (ID: 72129) to **Christian Bale** (ID: 3894)
 
 The table should be in markdown with the following format:
 
@@ -23,10 +23,10 @@ The table should be in markdown with the following format:
 
 | Actor 1 | Actor 2 | Degrees | Total Duration (ms) | Backend Duration (ms) | Network Duration (ms) | Status |
 |---------|---------|---------|---------------------|----------------------|----------------------|--------|
-| Christian Bale | Kate Winslet | X | XXXms | XXXms | XXXms | ✅/❌ |
+| Christian Bale | Heath Ledger| X | XXXms | XXXms | XXXms | ✅/❌ |
 | Hugh Jackman | Heath Ledger | X | XXXms | XXXms | XXXms | ✅/❌ |
-| Christian Bale | Heath Ledger | X | XXXms | XXXms | XXXms | ✅/❌ |
-| Kate Winslet | Hugh Jackman | X | XXXms | XXXms | XXXms | ✅/❌ |
+| Hugh Jackman | Kate Winslet | X | XXXms | XXXms | XXXms | ✅/❌ |
+| Kate Winslet | Christian Bale | X | XXXms | XXXms | XXXms | ✅/❌ |
 
 ### Summary Statistics
 - **Average Total Duration:** XXXms

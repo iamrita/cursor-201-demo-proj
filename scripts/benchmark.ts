@@ -51,16 +51,16 @@ const ACTOR_PAIRS: ActorPair[] = [
     actor2Id: 1810,
   },
   {
-    actor1Name: 'Christian Bale',
-    actor1Id: 3894,
+    actor1Name: 'Hugh Jackman',
+    actor1Id: 6968,
     actor2Name: 'Kate Winslet',
     actor2Id: 72129,
   },
   {
     actor1Name: 'Kate Winslet',
     actor1Id: 72129,
-    actor2Name: 'Hugh Jackman',
-    actor2Id: 6968,
+    actor2Name: 'Christian Bale',
+    actor2Id: 3894,
   },
 ];
 

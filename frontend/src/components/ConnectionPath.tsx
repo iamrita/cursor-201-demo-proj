@@ -57,7 +57,7 @@ export default function ConnectionPath({
         </p>
         {frontendDurationMs !== null && (
           <p className="text-sm text-gray-500">
-            Total time: <span className="font-medium text-gray-700">{(frontendDurationMs / 1000).toFixed(2)}s</span>
+            Total time: <span className="font-medium text-gray-700">{frontendDurationMs.toFixed(0)}ms</span>
           </p>
         )}
       </div>
