@@ -5,7 +5,7 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import actorsRouter from './routes/actors';
-import cache from './services/cache';
+import cacheService from './services/cache';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -21,12 +21,17 @@ app.get('/health', (req, res) => {
 
 // Cache stats endpoint
 app.get('/cache/stats', (req, res) => {
-  const stats = cache.getStats();
+  const stats = cacheService.getStats();
   res.json({
     cacheSize: stats.size,
     cachedKeys: stats.keys,
-    message: 'Cache statistics retrieved successfully',
   });
+});
+
+// Clear cache endpoint (useful for testing/debugging)
+app.post('/cache/clear', (req, res) => {
+  cacheService.clear();
+  res.json({ message: 'Cache cleared successfully' });
 });
 
 // API routes
@@ -46,4 +51,3 @@ app.listen(PORT, () => {
   console.log(`🚀 Backend server running on http://localhost:${PORT}`);
   console.log(`📡 API endpoints available at http://localhost:${PORT}/api`);
 });
-

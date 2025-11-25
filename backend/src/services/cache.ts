@@ -1,54 +1,55 @@
-/**
- * Simple in-memory cache with TTL (Time To Live) support
- */
-class Cache {
-  private cache: Map<string, { value: any; expiresAt: number }>;
-  private defaultTTL: number;
+interface CacheEntry<T> {
+  data: T;
+  expiresAt: number;
+}
 
-  constructor(defaultTTL: number = 3600000) {
-    // Default TTL: 1 hour (3600000 ms)
+/**
+ * In-memory cache service with TTL support
+ */
+class CacheService {
+  private cache: Map<string, CacheEntry<any>>;
+  private defaultTTL: number; // in milliseconds
+
+  constructor(defaultTTL: number = 3600000) { // Default 1 hour
     this.cache = new Map();
     this.defaultTTL = defaultTTL;
     
-    // Clean up expired entries periodically (every 5 minutes)
+    // Clean up expired entries every 5 minutes
     setInterval(() => this.cleanup(), 5 * 60 * 1000);
   }
 
   /**
-   * Get a value from cache
-   * @param key Cache key
-   * @returns Cached value or null if not found/expired
+   * Get a value from cache if it exists and hasn't expired
    */
   get<T>(key: string): T | null {
     const entry = this.cache.get(key);
+    
     if (!entry) {
       return null;
     }
-    
+
     // Check if expired
     if (Date.now() > entry.expiresAt) {
       this.cache.delete(key);
       return null;
     }
-    
-    return entry.value as T;
+
+    return entry.data as T;
   }
 
   /**
-   * Set a value in cache with optional custom TTL
-   * @param key Cache key
-   * @param value Value to cache
-   * @param ttl Optional TTL in milliseconds (defaults to instance default)
+   * Set a value in cache with optional TTL
    */
-  set(key: string, value: any, ttl?: number): void {
+  set<T>(key: string, value: T, ttl?: number): void {
     const expiresAt = Date.now() + (ttl || this.defaultTTL);
-    this.cache.set(key, { value, expiresAt });
+    this.cache.set(key, {
+      data: value,
+      expiresAt,
+    });
   }
 
   /**
-   * Check if a key exists and is not expired
-   * @param key Cache key
-   * @returns true if key exists and is valid
+   * Check if a key exists in cache and is not expired
    */
   has(key: string): boolean {
     const entry = this.cache.get(key);
@@ -65,11 +66,10 @@ class Cache {
   }
 
   /**
-   * Delete a key from cache
-   * @param key Cache key
+   * Delete a specific key from cache
    */
-  delete(key: string): void {
-    this.cache.delete(key);
+  delete(key: string): boolean {
+    return this.cache.delete(key);
   }
 
   /**
@@ -82,9 +82,7 @@ class Cache {
   /**
    * Get cache statistics
    */
-  getStats() {
-    // Clean up expired entries before returning stats
-    this.cleanup();
+  getStats(): { size: number; keys: string[] } {
     return {
       size: this.cache.size,
       keys: Array.from(this.cache.keys()),
@@ -96,19 +94,29 @@ class Cache {
    */
   private cleanup(): void {
     const now = Date.now();
+    const keysToDelete: string[] = [];
+
     for (const [key, entry] of this.cache.entries()) {
       if (now > entry.expiresAt) {
-        this.cache.delete(key);
+        keysToDelete.push(key);
       }
+    }
+
+    keysToDelete.forEach(key => this.cache.delete(key));
+    
+    if (keysToDelete.length > 0) {
+      console.log(`[Cache] Cleaned up ${keysToDelete.length} expired entries`);
     }
   }
 }
 
-// Export singleton instance with configurable TTL
-// Default: 1 hour for most data, but can be overridden via environment variable
-const defaultTTL = process.env.CACHE_TTL_MS
-  ? parseInt(process.env.CACHE_TTL_MS, 10)
-  : 3600000; // 1 hour
+// Cache TTL constants (in milliseconds)
+export const CACHE_TTL = {
+  ACTOR_DETAILS: 24 * 60 * 60 * 1000,      // 24 hours
+  ACTOR_FILMOGRAPHY: 6 * 60 * 60 * 1000,   // 6 hours
+  MOVIE_DETAILS: 24 * 60 * 60 * 1000,      // 24 hours
+  MOVIE_CAST: 6 * 60 * 60 * 1000,          // 6 hours
+  SEARCH_RESULTS: 5 * 60 * 1000,            // 5 minutes
+};
 
-export default new Cache(defaultTTL);
-
+export default new CacheService();
