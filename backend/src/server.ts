@@ -5,6 +5,7 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import actorsRouter from './routes/actors';
+import cache from './services/cache';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -16,6 +17,11 @@ app.use(express.json());
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Six Degrees API is running' });
+});
+
+// Cache statistics endpoint
+app.get('/cache/stats', (req, res) => {
+  res.json(cache.getStats());
 });
 
 // API routes
