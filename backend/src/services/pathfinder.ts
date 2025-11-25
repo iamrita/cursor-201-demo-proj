@@ -47,11 +47,12 @@ class PathfinderService {
       const foundMovie = results.find(m => m !== null);
       
       if (foundMovie) {
+        const enrichedMovie = await this.enrichMovie(foundMovie);
         console.log(`[Pathfinder] ✅ Direct connection found! ${startActor.name} and ${endActor.name} both in ${foundMovie.title}`);
         return {
           path: [
             { type: 'actor', data: startActor },
-            { type: 'movie', data: foundMovie },
+            { type: 'movie', data: enrichedMovie },
             { type: 'actor', data: endActor },
           ],
           degrees: 1,
@@ -221,10 +222,32 @@ class PathfinderService {
           finalPath.push(step);
         }
       } else {
-        finalPath.push(step);
+        const movieData = step.data as Movie;
+        const enrichedMovie = await this.enrichMovie(movieData);
+        finalPath.push({ type: 'movie', data: enrichedMovie });
       }
     }
     return finalPath;
+  }
+
+  private async enrichMovie(movie: Movie): Promise<Movie> {
+    if (movie.imdb_id) {
+      return movie;
+    }
+
+    try {
+      const details = await tmdbService.getMovieDetails(movie.id);
+      return {
+        ...movie,
+        ...details,
+        poster_path: movie.poster_path || details.poster_path,
+        release_date: movie.release_date || details.release_date,
+        imdb_id: details.imdb_id || movie.imdb_id,
+      };
+    } catch (error: any) {
+      console.error(`[Pathfinder] Failed to enrich movie ${movie.id}:`, error.message || error);
+      return movie;
+    }
   }
 
 }
