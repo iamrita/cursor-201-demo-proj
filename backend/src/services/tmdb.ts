@@ -130,6 +130,7 @@ class TMDBService {
       title: string;
       release_date: string | null;
       poster_path: string | null;
+      imdb_id: string | null;
     }>(`/movie/${movieId}`);
 
     return {
@@ -137,6 +138,8 @@ class TMDBService {
       title: movie.title,
       release_date: movie.release_date || undefined,
       poster_path: movie.poster_path || undefined,
+      imdbId: movie.imdb_id || undefined,
+      imdbUrl: movie.imdb_id ? `https://www.imdb.com/title/${movie.imdb_id}/` : undefined,
     };
   }
 }

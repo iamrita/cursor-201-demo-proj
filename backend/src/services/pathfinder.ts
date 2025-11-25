@@ -208,6 +208,7 @@ class PathfinderService {
   // Helper method to build final path with actor details
   private async buildFinalPath(path: PathStep[]): Promise<PathStep[]> {
     const finalPath: PathStep[] = [];
+    const movieDetailsCache = new Map<number, Movie>();
     for (const step of path) {
       if (step.type === 'actor') {
         // If it's already an Actor object, use it; otherwise fetch by ID
@@ -221,7 +222,22 @@ class PathfinderService {
           finalPath.push(step);
         }
       } else {
-        finalPath.push(step);
+        const movieData = step.data as Movie;
+        if (movieData.imdbId && movieData.imdbUrl) {
+          finalPath.push(step);
+          continue;
+        }
+
+        if (!movieDetailsCache.has(movieData.id)) {
+          const movieDetails = await tmdbService.getMovieDetails(movieData.id);
+          movieDetailsCache.set(movieData.id, movieDetails);
+        }
+
+        const enrichedMovie = {
+          ...movieData,
+          ...movieDetailsCache.get(movieData.id)!,
+        };
+        finalPath.push({ type: 'movie', data: enrichedMovie });
       }
     }
     return finalPath;
