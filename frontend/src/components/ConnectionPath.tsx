@@ -1,4 +1,4 @@
-import { PathResult } from '../services/api';
+import { PathResult, Actor, Movie } from '../services/api';
 import PathStep from './PathStep';
 
 interface ConnectionPathProps {
@@ -46,6 +46,14 @@ export default function ConnectionPath({
     return null;
   }
 
+  const formattedPath = result.path
+    .map((step) =>
+      step.type === 'actor'
+        ? (step.data as Actor).name
+        : (step.data as Movie).title
+    )
+    .join(' → ');
+
   return (
     <div className="mt-8 p-8 bg-white rounded-lg shadow-md">
       <div className="mb-6 text-center">
@@ -73,15 +81,7 @@ export default function ConnectionPath({
       </div>
 
       <div className="mt-6 text-center text-sm text-gray-500">
-        <p>
-          Path: {result.path
-            .map((step) =>
-              step.type === 'actor'
-                ? step.data.name
-                : step.data.title
-            )
-            .join(' → ')}
-        </p>
+        <p>Path: {formattedPath}</p>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { PathStep as PathStepType } from '../services/api';
+import { PathStep as PathStepType, Actor, Movie } from '../services/api';
 
 interface PathStepProps {
   step: PathStepType;
@@ -7,7 +7,7 @@ interface PathStepProps {
 
 export default function PathStep({ step, isLast }: PathStepProps) {
   if (step.type === 'actor') {
-    const actor = step.data;
+    const actor = step.data as Actor;
     return (
       <div className="flex items-center gap-4">
         <div className="flex flex-col items-center">
@@ -32,7 +32,8 @@ export default function PathStep({ step, isLast }: PathStepProps) {
       </div>
     );
   } else {
-    const movie = step.data;
+    const movie = step.data as Movie;
+    const imdbUrl = movie.imdb_id ? `https://www.imdb.com/title/${movie.imdb_id}/` : null;
     return (
       <div className="flex items-center gap-4">
         <div className="flex flex-col items-center">
@@ -56,6 +57,16 @@ export default function PathStep({ step, isLast }: PathStepProps) {
             <span className="text-xs text-gray-500">
               {new Date(movie.release_date).getFullYear()}
             </span>
+          )}
+          {imdbUrl && (
+            <a
+              href={imdbUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 text-xs font-semibold text-yellow-600 hover:text-yellow-700"
+            >
+              View on IMDb ↗
+            </a>
           )}
         </div>
         {!isLast && (
