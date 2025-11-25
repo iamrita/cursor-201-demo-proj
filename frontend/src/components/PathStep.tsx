@@ -49,9 +49,20 @@ export default function PathStep({ step, isLast }: PathStepProps) {
               </span>
             </div>
           )}
-          <span className="mt-2 text-sm font-medium text-gray-900 max-w-[120px] text-center">
-            {movie.title}
-          </span>
+          {movie.imdb_id ? (
+            <a
+              href={`https://www.imdb.com/title/${movie.imdb_id}/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 text-sm font-medium text-blue-600 hover:underline max-w-[120px] text-center"
+            >
+              {movie.title}
+            </a>
+          ) : (
+            <span className="mt-2 text-sm font-medium text-gray-900 max-w-[120px] text-center">
+              {movie.title}
+            </span>
+          )}
           {movie.release_date && (
             <span className="text-xs text-gray-500">
               {new Date(movie.release_date).getFullYear()}
