@@ -36,8 +36,8 @@ interface PathResponse {
   message?: string;
 }
 
-// Test actor pairs
-const ACTOR_PAIRS: ActorPair[] = [
+// Default actor pairs (used when no arguments provided)
+const DEFAULT_ACTOR_PAIRS: ActorPair[] = [
   {
     actor1Name: 'Christian Bale',
     actor1Id: 3894,
@@ -64,8 +64,98 @@ const ACTOR_PAIRS: ActorPair[] = [
   },
 ];
 
+interface ActorSearchResult {
+  id: number;
+  name: string;
+  profile_path?: string;
+  known_for?: any[];
+}
+
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3001';
 const API_URL = `${API_BASE_URL}/api/path`;
+const SEARCH_URL = `${API_BASE_URL}/api/search`;
+
+/**
+ * Parse actor pairs from command line arguments or environment variable
+ * Format: "Actor1, Actor2 | Actor3, Actor4"
+ */
+function parseActorPairsFromInput(input?: string): string[] {
+  if (!input || input.trim().length === 0) {
+    return [];
+  }
+  
+  // Split by pipe to get pairs
+  return input.split('|').map(pair => pair.trim()).filter(pair => pair.length > 0);
+}
+
+/**
+ * Parse a single actor pair string into actor names
+ * Format: "Actor1, Actor2"
+ */
+function parseActorPair(pairStr: string): { actor1: string; actor2: string } | null {
+  const parts = pairStr.split(',').map(s => s.trim()).filter(s => s.length > 0);
+  if (parts.length !== 2) {
+    return null;
+  }
+  return { actor1: parts[0], actor2: parts[1] };
+}
+
+/**
+ * Look up actor ID by name using the search API
+ */
+async function lookupActorId(actorName: string): Promise<number | null> {
+  try {
+    const response = await fetch(`${SEARCH_URL}?q=${encodeURIComponent(actorName)}`);
+    if (!response.ok) {
+      console.error(`Failed to search for actor "${actorName}": HTTP ${response.status}`);
+      return null;
+    }
+    
+    const actors = await response.json() as ActorSearchResult[];
+    if (actors.length === 0) {
+      console.error(`No actors found for "${actorName}"`);
+      return null;
+    }
+    
+    // Return the first result (most relevant)
+    return actors[0].id;
+  } catch (error: any) {
+    console.error(`Error looking up actor "${actorName}":`, error.message);
+    return null;
+  }
+}
+
+/**
+ * Convert parsed actor pairs to ActorPair objects with IDs
+ */
+async function resolveActorPairs(pairStrings: string[]): Promise<ActorPair[]> {
+  const resolvedPairs: ActorPair[] = [];
+  
+  for (const pairStr of pairStrings) {
+    const parsed = parseActorPair(pairStr);
+    if (!parsed) {
+      console.warn(`Skipping invalid pair format: "${pairStr}"`);
+      continue;
+    }
+    
+    const actor1Id = await lookupActorId(parsed.actor1);
+    const actor2Id = await lookupActorId(parsed.actor2);
+    
+    if (actor1Id === null || actor2Id === null) {
+      console.error(`Failed to resolve IDs for pair: ${parsed.actor1}, ${parsed.actor2}`);
+      continue;
+    }
+    
+    resolvedPairs.push({
+      actor1Name: parsed.actor1,
+      actor1Id,
+      actor2Name: parsed.actor2,
+      actor2Id,
+    });
+  }
+  
+  return resolvedPairs;
+}
 
 /**
  * Test a single actor connection
@@ -185,13 +275,40 @@ async function main() {
   }
 
   console.log('✅ Server is running\n');
-  console.log(`Testing ${ACTOR_PAIRS.length} actor connections...\n`);
+
+  // Get actor pairs from command line args or environment variable
+  // Handle input as a single string argument (from Cursor command) or multiple args
+  const input = process.argv[2] || process.argv.slice(2).join(' ') || process.env.ACTOR_PAIRS || '';
+  let actorPairs: ActorPair[];
+
+  if (input.trim().length > 0) {
+    console.log(`Parsing actor pairs from input: "${input}"\n`);
+    const pairStrings = parseActorPairsFromInput(input);
+    
+    if (pairStrings.length === 0) {
+      console.warn('No valid actor pairs found in input, using defaults...\n');
+      actorPairs = DEFAULT_ACTOR_PAIRS;
+    } else {
+      console.log(`Resolving ${pairStrings.length} actor pair(s)...\n`);
+      actorPairs = await resolveActorPairs(pairStrings);
+      
+      if (actorPairs.length === 0) {
+        console.error('❌ Failed to resolve any actor pairs. Exiting.');
+        process.exit(1);
+      }
+    }
+  } else {
+    console.log('No input provided, using default actor pairs...\n');
+    actorPairs = DEFAULT_ACTOR_PAIRS;
+  }
+
+  console.log(`Testing ${actorPairs.length} actor connection(s)...\n`);
 
   const results: BenchmarkResult[] = [];
 
-  for (let i = 0; i < ACTOR_PAIRS.length; i++) {
-    const pair = ACTOR_PAIRS[i];
-    console.log(`[${i + 1}/${ACTOR_PAIRS.length}] Testing ${pair.actor1Name} → ${pair.actor2Name}...`);
+  for (let i = 0; i < actorPairs.length; i++) {
+    const pair = actorPairs[i];
+    console.log(`[${i + 1}/${actorPairs.length}] Testing ${pair.actor1Name} → ${pair.actor2Name}...`);
     
     const result = await benchmarkConnection(pair);
     results.push(result);
@@ -203,7 +320,7 @@ async function main() {
     }
 
     // Small delay between requests to avoid overwhelming the server
-    if (i < ACTOR_PAIRS.length - 1) {
+    if (i < actorPairs.length - 1) {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
