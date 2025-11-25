@@ -7,7 +7,7 @@ Parse the input parameter `{{input}}` to extract actor pairs. The input format s
 - Within each pair, actors separated by `,` (comma)
 - Example: `Christian Bale, Heath Ledger | Hugh Jackman, Heath Ledger`
 
-Stop running the backend server on the main branch, and instead checkout the branch that is associated with the Github PR in the current context window. Start the backend server on that branch and make sure it's running. 
+Stop running the backend server on the main branch if it's running, and instead checkout the branch that is associated with the Github PR in the current context window. Start the backend server on that branch and make sure it's running. 
 
 Run the benchmark script with the parsed input:
 1. Change to the scripts directory: `cd scripts`
