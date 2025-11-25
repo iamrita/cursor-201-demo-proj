@@ -48,12 +48,14 @@ class PathfinderService {
       
       if (foundMovie) {
         console.log(`[Pathfinder] ✅ Direct connection found! ${startActor.name} and ${endActor.name} both in ${foundMovie.title}`);
+        const directPath: PathStep[] = [
+          { type: 'actor', data: startActor },
+          { type: 'movie', data: foundMovie },
+          { type: 'actor', data: endActor },
+        ];
+        const finalPath = await this.buildFinalPath(directPath);
         return {
-          path: [
-            { type: 'actor', data: startActor },
-            { type: 'movie', data: foundMovie },
-            { type: 'actor', data: endActor },
-          ],
+          path: finalPath,
           degrees: 1,
         };
       }
@@ -208,6 +210,7 @@ class PathfinderService {
   // Helper method to build final path with actor details
   private async buildFinalPath(path: PathStep[]): Promise<PathStep[]> {
     const finalPath: PathStep[] = [];
+    const movieDetailsCache = new Map<number, Movie>();
     for (const step of path) {
       if (step.type === 'actor') {
         // If it's already an Actor object, use it; otherwise fetch by ID
@@ -221,7 +224,26 @@ class PathfinderService {
           finalPath.push(step);
         }
       } else {
-        finalPath.push(step);
+        const movieData = step.data as Movie;
+        if (movieData.imdb_id) {
+          finalPath.push({ type: 'movie', data: movieData });
+          continue;
+        }
+
+        let movieDetails = movieDetailsCache.get(movieData.id);
+        if (!movieDetails) {
+          movieDetails = await tmdbService.getMovieDetails(movieData.id);
+          movieDetailsCache.set(movieData.id, movieDetails);
+        }
+
+        finalPath.push({
+          type: 'movie',
+          data: {
+            ...movieDetails,
+            ...movieData,
+            imdb_id: movieDetails.imdb_id || movieData.imdb_id,
+          },
+        });
       }
     }
     return finalPath;
