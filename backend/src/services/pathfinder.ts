@@ -7,6 +7,8 @@ interface QueueItem {
 }
 
 class PathfinderService {
+  private movieDetailsCache = new Map<number, Movie>();
+
   constructor() {
   }
 
@@ -221,10 +223,32 @@ class PathfinderService {
           finalPath.push(step);
         }
       } else {
-        finalPath.push(step);
+        const movieData = step.data as Movie;
+        const enrichedMovie = await this.getMovieWithImdbId(movieData);
+        finalPath.push({ type: 'movie', data: enrichedMovie });
       }
     }
     return finalPath;
+  }
+
+  private async getMovieWithImdbId(movieData: Movie): Promise<Movie> {
+    if (movieData.imdb_id) {
+      return movieData;
+    }
+
+    if (this.movieDetailsCache.has(movieData.id)) {
+      const cached = this.movieDetailsCache.get(movieData.id)!;
+      return { ...movieData, ...cached };
+    }
+
+    try {
+      const detailedMovie = await tmdbService.getMovieDetails(movieData.id);
+      this.movieDetailsCache.set(movieData.id, detailedMovie);
+      return { ...movieData, ...detailedMovie };
+    } catch (error: any) {
+      console.error(`[Pathfinder] Failed to enrich movie ${movieData.id} with IMDb ID:`, error.message || error);
+      return movieData;
+    }
   }
 
 }

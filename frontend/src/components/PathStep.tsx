@@ -33,31 +33,58 @@ export default function PathStep({ step, isLast }: PathStepProps) {
     );
   } else {
     const movie = step.data;
+    const imdbUrl = movie.imdb_id ? `https://www.imdb.com/title/${movie.imdb_id}` : null;
+    const movieCard = (
+      <div
+        className={`flex flex-col items-center text-center ${
+          imdbUrl ? 'transition-transform hover:-translate-y-0.5' : ''
+        }`}
+      >
+        {movie.poster_path ? (
+          <img
+            src={`https://image.tmdb.org/t/p/w92${movie.poster_path}`}
+            alt={movie.title}
+            className="w-16 h-24 object-cover rounded border-2 border-purple-500"
+          />
+        ) : (
+          <div className="w-16 h-24 bg-gray-300 rounded flex items-center justify-center border-2 border-purple-500">
+            <span className="text-gray-600 text-xs text-center px-1">
+              No Poster
+            </span>
+          </div>
+        )}
+        <span className="mt-2 text-sm font-medium text-gray-900 max-w-[120px] text-center">
+          {movie.title}
+        </span>
+        {movie.release_date && (
+          <span className="text-xs text-gray-500">
+            {new Date(movie.release_date).getFullYear()}
+          </span>
+        )}
+        {imdbUrl && (
+          <span className="mt-1 text-xs font-semibold text-purple-600">
+            IMDb ↗
+          </span>
+        )}
+      </div>
+    );
+
     return (
       <div className="flex items-center gap-4">
-        <div className="flex flex-col items-center">
-          {movie.poster_path ? (
-            <img
-              src={`https://image.tmdb.org/t/p/w92${movie.poster_path}`}
-              alt={movie.title}
-              className="w-16 h-24 object-cover rounded border-2 border-purple-500"
-            />
-          ) : (
-            <div className="w-16 h-24 bg-gray-300 rounded flex items-center justify-center border-2 border-purple-500">
-              <span className="text-gray-600 text-xs text-center px-1">
-                No Poster
-              </span>
-            </div>
-          )}
-          <span className="mt-2 text-sm font-medium text-gray-900 max-w-[120px] text-center">
-            {movie.title}
-          </span>
-          {movie.release_date && (
-            <span className="text-xs text-gray-500">
-              {new Date(movie.release_date).getFullYear()}
-            </span>
-          )}
-        </div>
+        {imdbUrl ? (
+          <a
+            href={imdbUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-purple-500"
+            aria-label={`Open ${movie.title} on IMDb`}
+            title={`View ${movie.title} on IMDb`}
+          >
+            {movieCard}
+          </a>
+        ) : (
+          movieCard
+        )}
         {!isLast && (
           <div className="text-2xl text-gray-400">→</div>
         )}
