@@ -5,7 +5,7 @@ description: Run performance benchmarks on actor connections and post results to
 Parse the input parameter `{{input}}` to extract actor pairs. The input format should be:
 - Actor pairs separated by `|` (pipe)
 - Within each pair, actors separated by `,` (comma)
-- Example: `Christian Bale, Heath Ledger | Hugh Jackman, Heath Ledger`
+- Example: `Kate Winslet, Heath Ledger | Christian Bale, Heath Ledger`
 
 Stop running the backend server on the main branch if it's running, and instead checkout the branch that is associated with the Github PR in the current context window. Start the backend server on that branch and make sure it's running. 
 
