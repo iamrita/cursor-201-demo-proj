@@ -1,4 +1,4 @@
-# Six Degrees of Kevin Bacon - TMDB Edition
+# Between Two Stars - TMDB Edition
 
 A web application that finds the connection path between any two actors through their movies, similar to the Oracle of Bacon, using the TMDB (The Movie Database) API.
 
